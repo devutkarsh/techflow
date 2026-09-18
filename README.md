@@ -35,7 +35,7 @@ http://localhost:5173/
 
 ## 📁 Adding New Architecture Chapters
 
-Architecture pages are dynamically discovered from [`src/data/architectures/`](file:///Users/plotkai/products/techflow/src/data/architectures/).
+Architecture pages are dynamically discovered from [`src/data/architectures/`](techflow/src/data/architectures/).
 
 To add a new chapter to the book:
 1. Create a new `.json` file inside `src/data/architectures/` (e.g. `my-new-architecture.json`).
