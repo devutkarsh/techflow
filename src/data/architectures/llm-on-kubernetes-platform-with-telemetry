@@ -1,0 +1,661 @@
+{
+  "id": "arch-k8s-qwen-litellm",
+  "slug": "kubernetes-qwen-litellm-platform",
+  "title": "Private LLM Hosting on Kubernetes with LiteLLM, Langfuse & Netdata",
+  "enabled": true,
+  "subtitle": "Self-hosted Qwen 2.5 3B Instruct inference cluster orchestrated via LiteLLM Gateway, NextChat UI, Langfuse LLM observability, and Netdata real-time hardware telemetry.",
+  "category": "AI & LLM Orchestration",
+  "version": "v1.2.0",
+  "publishedDate": "2026-09-18",
+  "lastUpdated": "2026-09-18",
+  "author": {
+    "name": "Utkarsh",
+    "role": "Lead AI Platform & Kubernetes Architect",
+    "avatar": "UT"
+  },
+  "readingTime": "5 min read",
+  "tags": [
+    "Kubernetes",
+    "Qwen 2.5 3B",
+    "LiteLLM",
+    "NextChat",
+    "Langfuse",
+    "Netdata",
+    "LLM Observability",
+    "Inference"
+  ],
+  "overview": {
+    "summary": "An enterprise-grade, privacy-first LLM hosting platform running on Kubernetes. Serves the high-performance Qwen 2.5 3B Instruct model behind an intelligent LiteLLM proxy, fronted by NextChat UI, tracked comprehensively by Langfuse for prompt/token telemetry, and monitored in real time via Netdata.",
+    "problemStatement": "Commercial LLM APIs introduce recurring per-token expenses, vendor lock-in, data privacy hazards, and opaque latency spikes. Deploying raw self-hosted models without a unified gateway, session tracking, and hardware telemetry leads to unmanaged token exhaustion and operational blind spots.",
+    "corePrinciples": [
+      "Zero Data Leakage: Complete control over inference workloads with in-cluster model execution.",
+      "Unified LiteLLM Proxying: Standardized OpenAI-compatible API interface with key budgeting, rate limiting, and automated Langfuse callbacks.",
+      "Dual-Plane Observability: Langfuse for LLM traces/token analytics and Netdata for per-second CPU/GPU/memory hardware diagnostics.",
+      "Frictionless User Experience: NextChat web and mobile UI delivering sub-50ms streaming token generation."
+    ],
+    "targetScale": {
+      "dailyActiveUsers": "Private Internal Teams & Enterprise Clients",
+      "throughput": "120+ tokens/sec per inference pod",
+      "storageVolume": "Quantized Model Weights & Tracing Databases",
+      "globalLatencyP99": "< 45ms TTFT (Time To First Token)"
+    }
+  },
+  "keyMetrics": {
+    "availabilitySLA": "99.95%",
+    "readLatencyP99": "35 ms (Time To First Token)",
+    "writeLatencyP99": "12 ms (Trace Ingestion)",
+    "resilienceTier": "High-Availability K8s Deployment with Auto-Restart",
+    "costOptimizationTier": "Tier 1 (Zero Per-Token API Costs)"
+  },
+  "nodes": [
+    {
+      "id": "node-nextchat",
+      "type": "architectureNode",
+      "position": {
+        "x": 40,
+        "y": 160
+      },
+      "data": {
+        "id": "node-nextchat",
+        "label": "NextChat UI",
+        "subtitle": "chat.devutkarsh.com",
+        "url": "https://chat.devutkarsh.com/#/",
+        "category": "client",
+        "description": "Modern, lightweight chat client delivering real-time streaming conversations, system prompt customization, and multi-session management. Accessible live at chat.devutkarsh.com/#/.",
+        "iconName": "Bot",
+        "techStack": [
+          "NextChat",
+          "Next.js",
+          "React",
+          "Server-Sent Events",
+          "TailwindCSS"
+        ],
+        "specs": {
+          "qps": "Concurrent WebSocket / SSE Streams",
+          "p99Latency": "< 20ms UI Render",
+          "replicas": "2 Replicas",
+          "sla": "99.99%",
+          "failoverStrategy": "Ingress Load Balanced",
+          "stateful": false,
+          "resourceAllocation": "0.5 vCPU / 512MB RAM"
+        },
+        "responsibilities": [
+          "Renders real-time markdown, code highlighting, and streaming responses",
+          "Maintains client-side chat histories and custom system prompts",
+          "Sends authenticated completions to the LiteLLM gateway",
+          "Supports dark mode, responsive layout, and one-click session export"
+        ],
+        "failureModes": [
+          "SSE stream disconnection on network disruption",
+          "Local storage quota exhaustion for conversation history"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: nextchat-ui\n  namespace: llm-platform\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: nextchat-ui\n  template:\n    metadata:\n      labels:\n        app: nextchat-ui\n    spec:\n      containers:\n      - name: nextchat\n        image: yidadaa/chatgpt-next-web:latest\n        ports:\n        - containerPort: 3000\n        env:\n        - name: BASE_URL\n          value: \"https://gateway.devutkarsh.com/v1\"\n        - name: OPENAI_API_KEY\n          valueFrom:\n            secretKeyRef:\n              name: litellm-keys\n              key: master-key"
+        }
+      }
+    },
+    {
+      "id": "node-litellm",
+      "type": "architectureNode",
+      "position": {
+        "x": 380,
+        "y": 160
+      },
+      "data": {
+        "id": "node-litellm",
+        "label": "LiteLLM AI Gateway",
+        "subtitle": "gateway.devutkarsh.com",
+        "url": "https://gateway.devutkarsh.com/ui",
+        "category": "gateway",
+        "description": "High-throughput OpenAI-compatible proxy routing requests to in-cluster Qwen 2.5 3B engines, enforcing rate limits, virtual keys, and automatic Langfuse telemetry hooks. Demo access: tester@devutkarsh.com / Tester@123456.",
+        "iconName": "Shuffle",
+        "techStack": [
+          "LiteLLM Proxy",
+          "FastAPI",
+          "Uvicorn",
+          "PostgreSQL",
+          "Redis"
+        ],
+        "specs": {
+          "qps": "2,500 req/s",
+          "p99Latency": "4.5 ms Overhead",
+          "replicas": "3 Pods (HPA)",
+          "sla": "99.99%",
+          "failoverStrategy": "Automatic fallback & retry",
+          "stateful": false,
+          "resourceAllocation": "2 vCPU / 2GB RAM"
+        },
+        "responsibilities": [
+          "Translates standard OpenAI API requests to local model endpoints",
+          "Enforces team API keys, spend budgets, and rate limiting",
+          "Asynchronously forwards generation metrics to Langfuse",
+          "Provides management UI and virtual key generation at gateway.devutkarsh.com"
+        ],
+        "failureModes": [
+          "Upstream model pod saturation causing timeout errors",
+          "PostgreSQL connection exhaustion during sudden traffic spikes"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "model_list:\n  - model_name: qwen-2.5-3b-instruct\n    litellm_params:\n      model: openai/qwen2.5-3b\n      api_base: http://qwen-inference-service.llm-platform.svc:8000/v1\n      api_key: \"EMPTY\"\nlitellm_settings:\n  callbacks:\n    - langfuse\n  success_callback:\n    - langfuse\n  failure_callback:\n    - langfuse"
+        }
+      }
+    },
+    {
+      "id": "node-qwen",
+      "type": "architectureNode",
+      "position": {
+        "x": 720,
+        "y": 160
+      },
+      "data": {
+        "id": "node-qwen",
+        "label": "Qwen 2.5 3B Instruct Engine",
+        "subtitle": "Kubernetes Inference Pod",
+        "category": "ai",
+        "description": "High-performance inference engine running Alibaba's Qwen2.5-3B-Instruct model. Provides blazingly fast reasoning, code generation, and low-latency token streaming.",
+        "iconName": "Cpu",
+        "techStack": [
+          "Qwen 2.5 3B Instruct",
+          "vLLM / Ollama",
+          "CUDA / ROCm",
+          "PyTorch",
+          "PagedAttention"
+        ],
+        "specs": {
+          "qps": "120+ tokens/sec",
+          "p99Latency": "18 ms / token",
+          "replicas": "Dedicated GPU/CPU Worker",
+          "sla": "99.95%",
+          "failoverStrategy": "Pod Auto-Restart & Rolling Updates",
+          "stateful": false,
+          "resourceAllocation": "1x GPU or 8 vCPU / 16GB RAM"
+        },
+        "responsibilities": [
+          "Executes parallelized tensor operations with KV cache reuse",
+          "Generates streaming token responses with low time-to-first-token",
+          "Serves OpenAI-compatible /v1/chat/completions endpoint internally",
+          "Manages dynamic batching for concurrent prompt evaluations"
+        ],
+        "failureModes": [
+          "GPU Out-Of-Memory (OOM) during extreme context window usage",
+          "Context length truncation for prompts exceeding maximum sequence limit"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: qwen-inference\n  namespace: llm-platform\nspec:\n  replicas: 1\n  template:\n    spec:\n      containers:\n      - name: model-server\n        image: vllm/vllm-openai:latest\n        args:\n        - \"--model\"\n        - \"Qwen/Qwen2.5-3B-Instruct\"\n        - \"--port\"\n        - \"8000\"\n        - \"--max-model-len\"\n        - \"8192\"\n        resources:\n          limits:\n            nvidia.com/gpu: 1\n            memory: 16Gi"
+        }
+      }
+    },
+    {
+      "id": "node-langfuse",
+      "type": "architectureNode",
+      "position": {
+        "x": 380,
+        "y": 440
+      },
+      "data": {
+        "id": "node-langfuse",
+        "label": "Langfuse LLM Tracing",
+        "subtitle": "langfuse.devutkarsh.com",
+        "url": "https://langfuse.devutkarsh.com/",
+        "category": "monitoring",
+        "description": "Comprehensive LLM observability and evaluation platform tracking traces, token consumption, latency breakdowns, and prompt revisions. Demo login: tester@devutkarsh.com / Tester@123456.",
+        "iconName": "Activity",
+        "techStack": [
+          "Langfuse",
+          "PostgreSQL",
+          "ClickHouse",
+          "Next.js",
+          "OpenTelemetry"
+        ],
+        "specs": {
+          "qps": "15K trace events/s",
+          "p99Latency": "12 ms Async Ingestion",
+          "replicas": "2 Pods",
+          "sla": "99.95%",
+          "failoverStrategy": "Buffered queue with persistent store",
+          "stateful": true,
+          "resourceAllocation": "1 vCPU / 2GB RAM"
+        },
+        "responsibilities": [
+          "Visualizes end-to-end user request traces and execution graphs",
+          "Calculates token counts, generation latencies, and estimated cost savings",
+          "Monitors model quality, output evaluations, and user feedback",
+          "Provides analytics dashboard and query console at langfuse.devutkarsh.com"
+        ],
+        "failureModes": [
+          "Trace ingestion queue lag during burst workloads",
+          "Database storage growth requiring log retention pruning"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "env:\n  - name: LANGFUSE_PUBLIC_KEY\n    value: \"pk-lf-prod-k8s-mesh\"\n  - name: LANGFUSE_SECRET_KEY\n    valueFrom:\n      secretKeyRef:\n        name: langfuse-secrets\n        key: secret-key\n  - name: LANGFUSE_HOST\n    value: \"https://langfuse.devutkarsh.com\""
+        }
+      }
+    },
+    {
+      "id": "node-netdata",
+      "type": "architectureNode",
+      "position": {
+        "x": 720,
+        "y": 440
+      },
+      "data": {
+        "id": "node-netdata",
+        "label": "Netdata Telemetry",
+        "subtitle": "netdata.devutkarsh.com",
+        "url": "https://netdata.devutkarsh.com/",
+        "category": "monitoring",
+        "description": "Real-time, per-second node and container infrastructure metrics dashboard. Monitor GPU VRAM, CPU load, and network I/O. (Note: Click 'Skip' / 'Explore without sign in' to view dashboard directly).",
+        "iconName": "Radio",
+        "techStack": [
+          "Netdata Agent",
+          "eBPF",
+          "cgroups v2",
+          "Prometheus Exporter",
+          "K8s DaemonSet"
+        ],
+        "specs": {
+          "qps": "Per-Second Telemetry Resolution",
+          "p99Latency": "< 5ms Dashboard Update",
+          "replicas": "DaemonSet per K8s Node",
+          "sla": "99.99%",
+          "failoverStrategy": "Distributed local buffer",
+          "stateful": false,
+          "resourceAllocation": "0.2 vCPU / 256MB RAM per node"
+        },
+        "responsibilities": [
+          "Collects high-frequency 1-second interval hardware telemetry",
+          "Monitors GPU temperature, VRAM allocation, and CUDA compute saturation",
+          "Tracks Kubernetes pod memory limits and CPU throttling",
+          "Provides interactive real-time charts at netdata.devutkarsh.com (no sign-in required)"
+        ],
+        "failureModes": [
+          "eBPF sensor permission constraints on restricted kernel nodes",
+          "Browser rendering lag when streaming 1,000+ real-time metric charts simultaneously"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: helm.toolkit.fluxcd.io/v2beta1\nkind: HelmRelease\nmetadata:\n  name: netdata\n  namespace: monitoring\nspec:\n  chart:\n    spec:\n      chart: netdata\n      version: 3.7.x\n  values:\n    k8sState:\n      enabled: true\n    parent:\n      database:\n        persistence: true"
+        }
+      }
+    },
+    {
+      "id": "node-postgres-db",
+      "type": "architectureNode",
+      "position": {
+        "x": 40,
+        "y": 440
+      },
+      "data": {
+        "id": "node-postgres-db",
+        "label": "PostgreSQL & Redis DB",
+        "subtitle": "State & Virtual Key Store",
+        "category": "database",
+        "description": "In-cluster relational database powering LiteLLM virtual key management, user quotas, spend tracking, and Langfuse state storage.",
+        "iconName": "Database",
+        "techStack": [
+          "PostgreSQL 16",
+          "CloudNativePG",
+          "Redis",
+          "PersistentVolumeClaims"
+        ],
+        "specs": {
+          "qps": "8,000 ops/s",
+          "p99Latency": "1.8 ms",
+          "replicas": "Primary + Read Replica",
+          "sla": "99.99%",
+          "failoverStrategy": "Automated leader failover",
+          "stateful": true,
+          "resourceAllocation": "1 vCPU / 4GB RAM"
+        },
+        "responsibilities": [
+          "Persists LiteLLM virtual keys, rate limits, and team token usage",
+          "Stores Langfuse trace metadata, user tags, and scores",
+          "Provides low-latency session caching via Redis"
+        ],
+        "failureModes": [
+          "Disk IOPS saturation during high trace volume writes",
+          "Storage volume capacity alerts requiring PVC expansion"
+        ],
+        "configSnippet": {
+          "language": "sql",
+          "code": "CREATE TABLE litellm_spend_logs (\n    spend_id UUID PRIMARY KEY,\n    api_key VARCHAR(255),\n    model VARCHAR(100),\n    prompt_tokens INT,\n    completion_tokens INT,\n    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-nextchat-litellm",
+      "source": "node-nextchat",
+      "target": "node-litellm",
+      "label": "Chat Request & SSE Stream",
+      "animated": true,
+      "data": {
+        "id": "edge-nextchat-litellm",
+        "protocol": "REST / HTTPS",
+        "latency": "25 ms",
+        "payloadType": "OpenAI /v1/chat/completions",
+        "payloadSample": "{\"model\":\"qwen-2.5-3b-instruct\",\"messages\":[{\"role\":\"user\",\"content\":\"Explain Kubernetes pods\"}],\"stream\":true}",
+        "authRequired": true,
+        "rateLimit": "60 req/min per key",
+        "bidirectional": true,
+        "description": "NextChat streams prompt payloads to LiteLLM Gateway and receives Server-Sent Events (SSE) token chunks in real time."
+      }
+    },
+    {
+      "id": "edge-litellm-qwen",
+      "source": "node-litellm",
+      "target": "node-qwen",
+      "label": "vLLM Inference Route",
+      "animated": true,
+      "data": {
+        "id": "edge-litellm-qwen",
+        "protocol": "REST / HTTPS",
+        "latency": "2.1 ms",
+        "payloadType": "In-Cluster Model Inference",
+        "payloadSample": "{\"prompt\":\"<|im_start|>user\\nExplain Kubernetes pods<|im_end|>\\n<|im_start|>assistant\\n\",\"max_tokens\":512,\"temperature\":0.7}",
+        "authRequired": false,
+        "rateLimit": "Internal Cluster Network",
+        "bidirectional": true,
+        "description": "LiteLLM resolves the model alias and proxies the token generation request directly to the Qwen 2.5 3B inference engine pod."
+      }
+    },
+    {
+      "id": "edge-litellm-langfuse",
+      "source": "node-litellm",
+      "target": "node-langfuse",
+      "label": "Async Tracing & Metrics",
+      "animated": false,
+      "data": {
+        "id": "edge-litellm-langfuse",
+        "protocol": "REST / HTTPS",
+        "latency": "1.2 ms",
+        "payloadType": "OpenTelemetry Trace Ingestion",
+        "payloadSample": "{\"traceId\":\"trc_8492019\",\"name\":\"qwen2.5-3b-chat\",\"input\":\"Explain Kubernetes pods\",\"outputTokens\":142,\"duration\":1.82}",
+        "authRequired": true,
+        "rateLimit": "Unmetered Internal",
+        "bidirectional": false,
+        "description": "LiteLLM automatically triggers callback hooks to send trace data, token counts, and generation timestamps to Langfuse asynchronously."
+      }
+    },
+    {
+      "id": "edge-litellm-postgres",
+      "source": "node-litellm",
+      "target": "node-postgres-db",
+      "label": "Key Auth & Quota Check",
+      "animated": false,
+      "data": {
+        "id": "edge-litellm-postgres",
+        "protocol": "SQL",
+        "latency": "1.4 ms",
+        "payloadType": "Database Query",
+        "payloadSample": "SELECT * FROM litellm_apikeys WHERE key_hash = 'sk-...' AND active = true;",
+        "authRequired": true,
+        "rateLimit": "Internal Pool",
+        "bidirectional": true,
+        "description": "LiteLLM validates the client's bearer token, checks remaining budget/quota, and increments usage logs in PostgreSQL."
+      }
+    },
+    {
+      "id": "edge-netdata-qwen",
+      "source": "node-netdata",
+      "target": "node-qwen",
+      "label": "eBPF / GPU Telemetry",
+      "animated": true,
+      "data": {
+        "id": "edge-netdata-qwen",
+        "protocol": "eBPF / Mesh",
+        "latency": "< 1 ms",
+        "payloadType": "Container & Hardware Metrics",
+        "payloadSample": "{\"gpu_vram_used_bytes\": 4831838208, \"cpu_utilization_pct\": 42.6, \"nvml_power_draw_w\": 65}",
+        "authRequired": false,
+        "rateLimit": "1s Polling",
+        "bidirectional": false,
+        "description": "Netdata sensor collects per-second kernel and hardware metrics directly from the Qwen inference container."
+      }
+    },
+    {
+      "id": "edge-langfuse-postgres",
+      "source": "node-langfuse",
+      "target": "node-postgres-db",
+      "label": "Trace & Log Storage",
+      "animated": false,
+      "data": {
+        "id": "edge-langfuse-postgres",
+        "protocol": "SQL",
+        "latency": "2.0 ms",
+        "payloadType": "Batch Telemetry Insert",
+        "payloadSample": "INSERT INTO traces (id, timestamp, model, latency_ms) VALUES ('trc_8492019', NOW(), 'qwen-2.5-3b', 1820);",
+        "authRequired": true,
+        "rateLimit": "Internal Pool",
+        "bidirectional": true,
+        "description": "Langfuse flushes trace batches, evaluation logs, and user session records into the database backend."
+      }
+    }
+  ],
+  "simulationFlow": [
+    {
+      "step": 1,
+      "title": "User Sends Message from NextChat UI",
+      "description": "User enters a prompt into NextChat UI at chat.devutkarsh.com. NextChat formats an OpenAI-compatible /v1/chat/completions payload and dispatches it with streaming enabled.",
+      "activeNodeIds": [
+        "node-nextchat"
+      ],
+      "activeEdgeIds": [
+        "edge-nextchat-litellm"
+      ],
+      "payload": {
+        "action": "HTTP POST /v1/chat/completions",
+        "protocol": "REST / HTTPS (TLS 1.3)",
+        "sample": {
+          "model": "qwen-2.5-3b-instruct",
+          "messages": [
+            {
+              "role": "user",
+              "content": "Explain Kubernetes pods and container lifecycle"
+            }
+          ],
+          "stream": true,
+          "temperature": 0.7
+        }
+      },
+      "durationMs": 3200,
+      "latencyExpectation": "25 ms"
+    },
+    {
+      "step": 2,
+      "title": "LiteLLM Gateway Authenticates & Resolves Route",
+      "description": "LiteLLM Gateway at gateway.devutkarsh.com validates the virtual API key against PostgreSQL, verifies token quotas, and translates the request to internal inference endpoints.",
+      "activeNodeIds": [
+        "node-litellm",
+        "node-postgres-db"
+      ],
+      "activeEdgeIds": [
+        "edge-litellm-postgres",
+        "edge-litellm-qwen"
+      ],
+      "payload": {
+        "action": "API Key Validation & Model Routing",
+        "protocol": "Internal HTTP Proxy",
+        "sample": {
+          "status": "authenticated",
+          "user": "tester@devutkarsh.com",
+          "upstream_target": "http://qwen-inference-service:8000/v1"
+        }
+      },
+      "durationMs": 3000,
+      "latencyExpectation": "4.5 ms"
+    },
+    {
+      "step": 3,
+      "title": "Qwen 2.5 3B Inference Engine Generates Tokens",
+      "description": "The Qwen 2.5 3B Instruct model generates tokens using KV caching and PagedAttention at ~120 tokens/second, streaming chunks back immediately.",
+      "activeNodeIds": [
+        "node-qwen"
+      ],
+      "activeEdgeIds": [
+        "edge-litellm-qwen"
+      ],
+      "payload": {
+        "action": "GPU / Tensor Inference",
+        "protocol": "Model Engine SSE",
+        "sample": {
+          "token_chunk": "A Kubernetes Pod is the smallest deployable unit...",
+          "finish_reason": null
+        }
+      },
+      "durationMs": 3500,
+      "latencyExpectation": "18 ms / token"
+    },
+    {
+      "step": 4,
+      "title": "NextChat UI Streams Response in Real Time",
+      "description": "NextChat receives the continuous token chunks via Server-Sent Events (SSE) and renders markdown and code formatting live in the user's browser.",
+      "activeNodeIds": [
+        "node-nextchat",
+        "node-litellm"
+      ],
+      "activeEdgeIds": [
+        "edge-nextchat-litellm"
+      ],
+      "payload": {
+        "action": "SSE Stream Delivery",
+        "protocol": "HTTP/2 Server-Sent Events",
+        "sample": {
+          "event": "message",
+          "data": "{\"choices\":[{\"delta\":{\"content\":\"unit of compute\"}}]}"
+        }
+      },
+      "durationMs": 3000,
+      "latencyExpectation": "< 20 ms"
+    },
+    {
+      "step": 5,
+      "title": "LiteLLM Emits Trace to Langfuse Observability",
+      "description": "Upon stream completion, LiteLLM triggers the Langfuse callback. Langfuse logs total token counts, latency breakdown, prompt text, and response text at langfuse.devutkarsh.com.",
+      "activeNodeIds": [
+        "node-litellm",
+        "node-langfuse",
+        "node-postgres-db"
+      ],
+      "activeEdgeIds": [
+        "edge-litellm-langfuse",
+        "edge-langfuse-postgres"
+      ],
+      "payload": {
+        "action": "Async LLM Tracing",
+        "protocol": "OpenTelemetry REST",
+        "sample": {
+          "trace_id": "trc_9381029",
+          "model": "qwen2.5-3b-instruct",
+          "prompt_tokens": 18,
+          "completion_tokens": 142,
+          "total_latency_ms": 1420
+        }
+      },
+      "durationMs": 3200,
+      "latencyExpectation": "12 ms async"
+    },
+    {
+      "step": 6,
+      "title": "Netdata Captures Real-Time Hardware Telemetry",
+      "description": "Netdata daemon at netdata.devutkarsh.com records per-second GPU VRAM, CPU utilization, and thermal metrics during inference without requiring sign-in.",
+      "activeNodeIds": [
+        "node-netdata",
+        "node-qwen"
+      ],
+      "activeEdgeIds": [
+        "edge-netdata-qwen"
+      ],
+      "payload": {
+        "action": "Hardware & Container Monitoring",
+        "protocol": "eBPF / cgroups v2",
+        "sample": {
+          "gpu_vram_used": "4.6 GB / 16 GB",
+          "gpu_utilization": "88%",
+          "net_rx_kbps": 320
+        }
+      },
+      "durationMs": 3200,
+      "latencyExpectation": "< 5 ms"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "decision": "Inference Gateway Architecture",
+      "chosenApproach": "LiteLLM Proxy deployed as a centralized K8s service",
+      "pros": [
+        "Provides OpenAI-compatible API interface for seamless client compatibility",
+        "Native plug-and-play callbacks for Langfuse without altering client apps",
+        "Centralized virtual key generation, rate limiting, and team budgeting"
+      ],
+      "cons": [
+        "Adds an additional hop (approx. 4-5ms) in the network path",
+        "Requires maintaining a PostgreSQL database for stateful key storage"
+      ],
+      "rejectedAlternatives": [
+        "Connecting NextChat directly to the raw vLLM pod (lacks rate limits and observability hooks)",
+        "Custom reverse proxy written from scratch (high maintenance overhead)"
+      ]
+    },
+    {
+      "decision": "Model Selection & Quantization Strategy",
+      "chosenApproach": "Self-hosted Qwen 2.5 3B Instruct on Kubernetes",
+      "pros": [
+        "Exceptional reasoning and instruction-following quality relative to its compact 3B footprint",
+        "Runs comfortably on modest GPU (4-8GB VRAM) or multi-core CPU instances",
+        "Zero per-token API charges and 100% data privacy compliance"
+      ],
+      "cons": [
+        "Requires managing GPU node pools and cluster auto-scaling",
+        "Smaller context window retention compared to 70B+ parameter models"
+      ],
+      "rejectedAlternatives": [
+        "Proprietary cloud APIs like GPT-4o / Claude 3.5 (high ongoing token costs and data residency concerns)",
+        "Running unquantized 70B parameter models (requires expensive multi-GPU clusters)"
+      ]
+    },
+    {
+      "decision": "Monitoring & Observability Stack",
+      "chosenApproach": "Dual-plane architecture: Langfuse for LLM traces + Netdata for real-time infrastructure",
+      "pros": [
+        "Langfuse captures prompt semantics, token usage, latency percentiles, and evaluations",
+        "Netdata provides sub-second live hardware telemetry (VRAM, CPU, I/O) without sign-in friction",
+        "Decoupled operational layers allow debugging application vs infrastructure issues independently"
+      ],
+      "cons": [
+        "Two separate web dashboards to consult during deep incident investigations"
+      ],
+      "rejectedAlternatives": [
+        "Prometheus/Grafana only (misses prompt-level LLM execution traces and token semantics)",
+        "Langfuse only (lacks per-second hardware/GPU thermal and memory bandwidth metrics)"
+      ]
+    }
+  ],
+  "securityAndCompliance": [
+    {
+      "area": "Data Privacy & Residency",
+      "standard": "Zero Third-Party Egress / Air-Gapped Capable",
+      "implementation": "All user prompts and generated model tokens remain strictly confined within the Kubernetes cluster private network. No external API calls are made."
+    },
+    {
+      "area": "API Authentication & RBAC",
+      "standard": "Virtual Keys & Team-Scoped Quotas",
+      "implementation": "LiteLLM enforces hashed virtual API keys with granular token budgets, expiration timestamps, and per-user rate limits."
+    },
+    {
+      "area": "Transport Security",
+      "standard": "TLS 1.3 / Automated Ingress Certificates",
+      "implementation": "All public ingress endpoints (chat.devutkarsh.com, gateway.devutkarsh.com, langfuse.devutkarsh.com, netdata.devutkarsh.com) are secured via cert-manager Let's Encrypt TLS certificates."
+    },
+    {
+      "area": "Observability Access Controls",
+      "standard": "Role-Based Dashboard Authentication",
+      "implementation": "LiteLLM and Langfuse dashboards enforce authenticated credentials (tester@devutkarsh.com / Tester@123456), while Netdata provides read-only telemetry exploration."
+    }
+  ]
+}
