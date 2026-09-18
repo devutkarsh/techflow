@@ -1,0 +1,441 @@
+{
+  "id": "arch-edge-media-transcode",
+  "slug": "edge-media-pipeline",
+  "title": "Global Edge CDN & Distributed Video Transcoding Mesh",
+  "enabled": false,
+  "subtitle": "Serverless edge chunking, Temporal distributed workflow orchestration, GPU AV1/H.265 transcoding, and multi-CDN adaptive bitrate delivery.",
+  "category": "Media & Edge",
+  "version": "v1.8.0",
+  "author": {
+    "name": "Sarah Lin",
+    "role": "Media Systems Architect",
+    "avatar": "SL"
+  },
+  "lastUpdated": "2026-09-12",
+  "readingTime": "6 min read",
+  "tags": [
+    "FFmpeg",
+    "Temporal",
+    "Rust",
+    "AV1",
+    "HLS",
+    "S3",
+    "Cloudflare R2"
+  ],
+  "overview": {
+    "summary": "A high-throughput distributed media processing architecture capable of ingesting 4K raw video streams, slicing them into parallel chunks across thousands of ephemeral GPU workers, and serving adaptive bitrate HLS/DASH streams globally.",
+    "problemStatement": "Transcoding 4K/8K 60fps media in monolithic pipelines results in hours of processing latency, unpredictable worker crashes, and massive cloud egress charges.",
+    "corePrinciples": [
+      "Edge chunking splitting raw videos into 5-second GOP segments for mass parallel transcoding",
+      "Temporal workflow state machine managing retries, fallback encoders, and pipeline orchestration",
+      "Tiered multi-CDN routing optimizing for cost and lowest buffering ratio",
+      "Zero-egress object storage utilizing Cloudflare R2 and AWS S3"
+    ],
+    "targetScale": {
+      "dailyActiveUsers": "45 Million video viewers / day",
+      "throughput": "18,000 video hours uploaded / hour",
+      "storageVolume": "8.5 Petabytes active media repository",
+      "globalLatencyP99": "400 ms startup playback latency"
+    }
+  },
+  "keyMetrics": {
+    "availabilitySLA": "99.99%",
+    "readLatencyP99": "35 ms (CDN Edge Hit)",
+    "writeLatencyP99": "90s (Full 10-min 4K Transcode Duration)",
+    "resilienceTier": "Auto-healing Distributed Worker Pool",
+    "costOptimizationTier": "Tier 1 (Spot GPU Instances & Zero Egress)"
+  },
+  "nodes": [
+    {
+      "id": "creator-client",
+      "type": "architectureNode",
+      "position": {
+        "x": 40,
+        "y": 200
+      },
+      "data": {
+        "id": "creator-client",
+        "label": "Creator Upload App",
+        "subtitle": "Direct Multipart Presigned Uploader",
+        "category": "client",
+        "description": "Browser / Mobile application using TUS protocol and presigned S3/R2 multi-part upload URLs for accelerated direct upload.",
+        "iconName": "UploadCloud",
+        "techStack": [
+          "TUS Protocol",
+          "TypeScript",
+          "WASM File Hashing"
+        ],
+        "specs": {
+          "qps": "15K concurrent uploads",
+          "p99Latency": "1 Gbps upload saturation",
+          "replicas": "Direct Edge Upload",
+          "sla": "99.99%"
+        }
+      }
+    },
+    {
+      "id": "ingest-storage",
+      "type": "architectureNode",
+      "position": {
+        "x": 300,
+        "y": 200
+      },
+      "data": {
+        "id": "ingest-storage",
+        "label": "Raw Ingestion Bucket",
+        "subtitle": "Cloudflare R2 / S3 Ingest",
+        "category": "storage",
+        "description": "High-throughput object storage emitting lifecycle events into message queues upon multi-part upload completion.",
+        "iconName": "HardDrive",
+        "techStack": [
+          "Cloudflare R2",
+          "AWS S3",
+          "S3 Event Notifications"
+        ],
+        "specs": {
+          "qps": "50 Gbps ingress",
+          "p99Latency": "18 ms write acknowledge",
+          "replicas": "Multi-region replication",
+          "sla": "99.999999999% Durability"
+        }
+      }
+    },
+    {
+      "id": "temporal-orch",
+      "type": "architectureNode",
+      "position": {
+        "x": 580,
+        "y": 200
+      },
+      "data": {
+        "id": "temporal-orch",
+        "label": "Temporal Orchestrator",
+        "subtitle": "Distributed Workflow Engine",
+        "category": "compute",
+        "description": "Durable execution engine coordinating video chunk splitting, GPU encoder dispatch, quality verification, and HLS manifest packaging.",
+        "iconName": "Workflow",
+        "techStack": [
+          "Temporal.io",
+          "Go SDK",
+          "PostgreSQL Backend"
+        ],
+        "specs": {
+          "qps": "35K active workflow executions",
+          "p99Latency": "2.5 ms state transition",
+          "replicas": "8 Temporal Servers",
+          "sla": "99.999%",
+          "failoverStrategy": "Deterministic replay on worker failure"
+        }
+      }
+    },
+    {
+      "id": "gpu-transcoders",
+      "type": "architectureNode",
+      "position": {
+        "x": 880,
+        "y": 100
+      },
+      "data": {
+        "id": "gpu-transcoders",
+        "label": "GPU Transcoder Fleet",
+        "subtitle": "Rust + FFmpeg + NVENC (Spot)",
+        "category": "compute",
+        "description": "Thousands of auto-scaling spot GPU workers encoding video segments into AV1, HEVC, and VP9 adaptive bitrate renditions.",
+        "iconName": "Cpu",
+        "techStack": [
+          "Rust",
+          "FFmpeg 7.0",
+          "NVIDIA NVENC",
+          "AWS EC2 G5/G6 Spot"
+        ],
+        "specs": {
+          "qps": "250K chunks encoded / min",
+          "p99Latency": "1.2s per 5s chunk",
+          "replicas": "400 - 3,500 Dynamic GPU instances",
+          "sla": "99.9%",
+          "failoverStrategy": "Spot interruption auto-retry via Temporal"
+        }
+      }
+    },
+    {
+      "id": "manifest-packager",
+      "type": "architectureNode",
+      "position": {
+        "x": 880,
+        "y": 320
+      },
+      "data": {
+        "id": "manifest-packager",
+        "label": "HLS / DASH Packager",
+        "subtitle": "Shaka Packager & DRM Service",
+        "category": "compute",
+        "description": "Stitches encoded chunks, injects FairPlay/Widevine DRM encryption keys, and generates multi-resolution .m3u8 / .mpd playlist manifests.",
+        "iconName": "Layers",
+        "techStack": [
+          "Go",
+          "Shaka Packager",
+          "Apple FairPlay",
+          "Google Widevine"
+        ],
+        "specs": {
+          "qps": "20K packages / min",
+          "p99Latency": "800 ms per video",
+          "replicas": "32 Worker Pods",
+          "sla": "99.99%"
+        }
+      }
+    },
+    {
+      "id": "distribution-cdn",
+      "type": "architectureNode",
+      "position": {
+        "x": 1160,
+        "y": 200
+      },
+      "data": {
+        "id": "distribution-cdn",
+        "label": "Global Multi-CDN Mesh",
+        "subtitle": "Fastly & CloudFront Edge",
+        "category": "gateway",
+        "description": "Global distributed CDN edge caching video segments (TS / fMP4) with Origin Shield and pre-fetching algorithms.",
+        "iconName": "Globe",
+        "techStack": [
+          "Fastly VCL",
+          "AWS CloudFront",
+          "Origin Shield",
+          "BGP Anycast"
+        ],
+        "specs": {
+          "qps": "4.8M video segment requests / sec",
+          "p99Latency": "12 ms edge delivery",
+          "replicas": "Global edge points of presence",
+          "sla": "99.999%",
+          "failoverStrategy": "Dynamic multi-CDN DNS steering (Conviva/Cedexis)"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-ingest",
+      "source": "creator-client",
+      "target": "ingest-storage",
+      "label": "Multipart Upload (TUS)",
+      "animated": true,
+      "data": {
+        "id": "e-client-ingest",
+        "protocol": "REST / HTTPS",
+        "latency": "Direct Cloud Ingress",
+        "payloadType": "Raw 4K ProRes / MP4 Chunks",
+        "description": "Parallel chunk upload directly bypassing API servers."
+      }
+    },
+    {
+      "id": "e-ingest-temp",
+      "source": "ingest-storage",
+      "target": "temporal-orch",
+      "label": "UploadComplete Event",
+      "animated": true,
+      "data": {
+        "id": "e-ingest-temp",
+        "protocol": "Kafka Topic",
+        "latency": "15 ms",
+        "payloadType": "S3:ObjectCreated:Put",
+        "description": "Storage event initiates Temporal transcoding workflow."
+      }
+    },
+    {
+      "id": "e-temp-gpu",
+      "source": "temporal-orch",
+      "target": "gpu-transcoders",
+      "label": "Parallel Chunk Tasks",
+      "animated": true,
+      "data": {
+        "id": "e-temp-gpu",
+        "protocol": "gRPC",
+        "latency": "2.4 ms",
+        "payloadType": "TranscodeChunkTask(start_sec, end_sec, profile)",
+        "description": "Fan-out to hundreds of spot GPU transcode workers."
+      }
+    },
+    {
+      "id": "e-gpu-pack",
+      "source": "gpu-transcoders",
+      "target": "manifest-packager",
+      "label": "Encoded Renditions (AV1/H265)",
+      "animated": true,
+      "data": {
+        "id": "e-gpu-pack",
+        "protocol": "TCP / TLS",
+        "latency": "12 ms",
+        "payloadType": "SegmentChunk.fmp4 (1080p, 4K, 720p)",
+        "description": "Aggregates multi-bitrate chunks for playlist composition."
+      }
+    },
+    {
+      "id": "e-pack-cdn",
+      "source": "manifest-packager",
+      "target": "distribution-cdn",
+      "label": "HLS / DASH Master Manifests",
+      "animated": true,
+      "data": {
+        "id": "e-pack-cdn",
+        "protocol": "REST / HTTPS",
+        "latency": "18 ms",
+        "payloadType": "master.m3u8 & DRM license keys",
+        "description": "Publishes manifests to origin shield for worldwide streaming."
+      }
+    }
+  ],
+  "simulationFlow": [
+    {
+      "step": 1,
+      "title": "Creator Uploads Raw 4K Video via Presigned URLs",
+      "description": "Client initiates a 5GB 4K 60fps upload. The file is split into 10MB chunks and pushed directly to Cloudflare R2 object storage.",
+      "activeNodeIds": [
+        "creator-client",
+        "ingest-storage"
+      ],
+      "activeEdgeIds": [
+        "e-client-ingest"
+      ],
+      "payload": {
+        "action": "PUT /raw-videos/vid_88291_4k.mov",
+        "protocol": "HTTPS Direct Ingest",
+        "sample": {
+          "fileSize": "5.2 GB",
+          "codec": "ProRes 422 HQ",
+          "resolution": "3840x2160",
+          "fps": 60
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "High bandwidth direct upload"
+    },
+    {
+      "step": 2,
+      "title": "Ingest Event Triggers Temporal Transcode Workflow",
+      "description": "Object creation webhook triggers the master Temporal DAG workflow to inspect video metadata and prepare parallel chunk matrix.",
+      "activeNodeIds": [
+        "ingest-storage",
+        "temporal-orch"
+      ],
+      "activeEdgeIds": [
+        "e-ingest-temp"
+      ],
+      "payload": {
+        "action": "Workflow.Start(VideoPipelineWorkflow)",
+        "protocol": "gRPC",
+        "sample": {
+          "videoId": "vid_88291",
+          "durationSeconds": 600,
+          "targetProfiles": [
+            "4K_AV1",
+            "1080p_H265",
+            "720p_H264",
+            "480p_H264"
+          ]
+        }
+      },
+      "durationMs": 1600,
+      "latencyExpectation": "15 ms event trigger"
+    },
+    {
+      "step": 3,
+      "title": "Fan-Out to 120 Spot GPU Transcoder Workers",
+      "description": "Temporal splits 600-second video into 120 individual 5-second GOP chunks and assigns them across spot GPU instances running FFmpeg NVENC.",
+      "activeNodeIds": [
+        "temporal-orch",
+        "gpu-transcoders"
+      ],
+      "activeEdgeIds": [
+        "e-temp-gpu"
+      ],
+      "payload": {
+        "action": "ActivityTask: ExecuteChunkTranscode",
+        "protocol": "gRPC",
+        "sample": {
+          "chunkIndex": 42,
+          "timeRange": "210.0s - 215.0s",
+          "gpuKernel": "NVENC_AV1_CBR"
+        }
+      },
+      "durationMs": 2400,
+      "latencyExpectation": "1.2s per 5s chunk execution"
+    },
+    {
+      "step": 4,
+      "title": "Manifest Stitching & DRM Encryption Packaging",
+      "description": "Shaka Packager receives all encoded renditions, applies Widevine & FairPlay encryption, and writes final adaptive bitrate HLS manifests.",
+      "activeNodeIds": [
+        "gpu-transcoders",
+        "manifest-packager"
+      ],
+      "activeEdgeIds": [
+        "e-gpu-pack"
+      ],
+      "payload": {
+        "action": "Generate Master HLS & DASH",
+        "protocol": "TCP / TLS",
+        "sample": {
+          "manifest": "master.m3u8",
+          "bitratesKbps": [
+            16000,
+            6000,
+            3000,
+            1200
+          ],
+          "drmEnforced": true
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "800 ms manifest compilation"
+    },
+    {
+      "step": 5,
+      "title": "Global Edge CDN Warms Video Segments",
+      "description": "HLS master playlist is pushed to Fastly and CloudFront edge nodes ready for millions of viewers with sub-400ms first frame playback.",
+      "activeNodeIds": [
+        "manifest-packager",
+        "distribution-cdn"
+      ],
+      "activeEdgeIds": [
+        "e-pack-cdn"
+      ],
+      "payload": {
+        "action": "CDN Cache Invalidation & Origin Shield Warm",
+        "protocol": "REST / HTTPS",
+        "sample": {
+          "cdn_status": "READY_FOR_STREAMING",
+          "url": "https://stream.platform.com/v/vid_88291/master.m3u8"
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "12 ms edge delivery"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "decision": "Spot GPU Instances with Temporal vs Dedicated Transcode Clusters",
+      "chosenApproach": "Ephemeral Spot GPUs Managed by Temporal Workflow Replays",
+      "pros": [
+        "Cuts cloud GPU compute bills by 72%",
+        "Temporal guarantees zero lost work on spot instance termination",
+        "Scales dynamically from 0 to 4,000 instances during peak live events"
+      ],
+      "cons": [
+        "Spot reclamation causes occasional chunk retry latency"
+      ],
+      "rejectedAlternatives": [
+        "Fixed on-demand GPU clusters running 24/7"
+      ]
+    }
+  ],
+  "securityAndCompliance": [
+    {
+      "area": "Media Content Protection",
+      "standard": "Hollywood Studio DRM (Apple FairPlay & Google Widevine)",
+      "implementation": "Sample-AES encryption on HLS fMP4 chunks with hardware KMS key rotation."
+    }
+  ]
+}

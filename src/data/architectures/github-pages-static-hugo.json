@@ -1,0 +1,627 @@
+{
+  "id": "arch-github-pages-hugo",
+  "slug": "github-pages-static-hugo",
+  "title": "Zero-Cost Jamstack: GitHub Pages, Hugo CI/CD & Cloudflare Edge",
+  "enabled": true,
+  "subtitle": "Automated static site generation pipeline with Hugo, GitHub Actions multi-branch deployments, and Cloudflare Anycast CDN caching.",
+  "category": "Jamstack & Cloud CDN",
+  "version": "v2.4.0",
+  "author": {
+    "name": "Utkarsh",
+    "role": "Lead Cloud Infrastructure Architect",
+    "avatar": "UT"
+  },
+  "lastUpdated": "2026-09-18",
+  "readingTime": "6 min read",
+  "tags": [
+    "Hugo",
+    "GitHub Pages",
+    "Cloudflare DNS",
+    "GitHub Actions",
+    "Jamstack",
+    "Markdown",
+    "CDN Caching",
+    "Static Site"
+  ],
+  "overview": {
+    "summary": "This architecture implements a modern, enterprise-grade Jamstack publishing engine with zero infrastructure hosting costs. Authors write clean Markdown on local machines, push to a GitHub source repository, and trigger an automated GitHub Actions CI/CD pipeline. The pipeline uses the Hugo Extended static site generator to compile static assets, XML sitemaps, RSS feeds, and a CNAME record into a dedicated publish branch (`gh-pages`). Cloudflare DNS manages domain routing, SSL termination, and Anycast CDN edge caching to serve global readers with sub-15ms First Contentful Paint (FCP).",
+    "problemStatement": "Traditional dynamic CMS platforms (e.g. WordPress, Drupal) introduce perpetual server hosting fees, database maintenance overhead, caching complexities, and severe security vulnerabilities (SQL injection, plugin exploits). This architecture replaces dynamic server compute with pre-rendered static assets delivered globally via Edge CDNs at zero recurring infrastructure cost.",
+    "corePrinciples": [
+      "Pure Jamstack Pre-rendering: 100% of HTML, CSS, JavaScript, and sitemaps are pre-compiled at build time.",
+      "Multi-Branch Source/Publish Separation: Keep Markdown draft sources and theme assets on `main` while deploying production build artifacts to `gh-pages`.",
+      "Automated GitOps Publishing: A single `git push` triggers automated linting, compilation, minification, and deployment.",
+      "Edge-First Anycast Delivery: Cloudflare CDN caches static files globally, offloading 99%+ of requests from origin servers.",
+      "Immutable Security Posture: Static files have zero database or backend runtime attack surface."
+    ],
+    "targetScale": {
+      "dailyActiveUsers": "500,000+ Readers / Day",
+      "throughput": "50,000 req/sec via Cloudflare Anycast",
+      "storageVolume": "< 1 GB Repository Size",
+      "globalLatencyP99": "< 15ms Edge Cache Hit (Global P99)"
+    }
+  },
+  "nodes": [
+    {
+      "id": "node-author-local",
+      "type": "architectureNode",
+      "position": {
+        "x": 60,
+        "y": 200
+      },
+      "data": {
+        "id": "node-author-local",
+        "label": "Local Workstation (Author)",
+        "subtitle": "Markdown Editor & Hugo Dev Server",
+        "category": "client",
+        "description": "Developer and content creator environment. Authors draft articles in Markdown, preview themes locally via Hugo live-reload server, and commit changes to Git.",
+        "iconName": "Laptop",
+        "techStack": [
+          "Hugo CLI v0.128+",
+          "Markdown / YAML",
+          "Git VCS",
+          "VS Code"
+        ],
+        "specs": {
+          "qps": "Local Authoring",
+          "p99Latency": "< 50ms Livereload",
+          "replicas": "1 Workstation",
+          "sla": "Local Dev",
+          "stateful": true
+        },
+        "responsibilities": [
+          "Author posts and pages in Markdown with TOML/YAML front-matter",
+          "Instant local preview with Hugo sub-millisecond live-reload engine",
+          "Manage themes, custom shortcodes, and Hugo layouts",
+          "Git commit and push source code to GitHub `main` branch"
+        ],
+        "failureModes": [
+          "Local syntax errors in Markdown front-matter caught prior to commit",
+          "Missing local git credentials or uncommitted draft files"
+        ],
+        "configSnippet": {
+          "language": "bash",
+          "code": "# Start local live-reload server\nhugo server -D --disableFastRender\n\n# Commit and push source to GitHub\ngit add content/posts/new-architecture.md\ngit commit -m 'feat: publish new architecture post'\ngit push origin main"
+        }
+      }
+    },
+    {
+      "id": "node-github-source",
+      "type": "architectureNode",
+      "position": {
+        "x": 380,
+        "y": 200
+      },
+      "data": {
+        "id": "node-github-source",
+        "label": "GitHub Source Repo",
+        "subtitle": "Branch: main (Source Code)",
+        "category": "queue",
+        "description": "Central Git repository storing source Markdown files, Hugo themes, configurations, and Git history. Protected by branch rules and webhook triggers.",
+        "iconName": "GitBranch",
+        "techStack": [
+          "GitHub Git",
+          "Webhooks",
+          "Branch Protection",
+          "Git Submodules"
+        ],
+        "specs": {
+          "qps": "On Git Push",
+          "p99Latency": "< 180ms Ingestion",
+          "replicas": "GitHub Distributed Storage",
+          "sla": "99.95% Availability",
+          "stateful": true
+        },
+        "responsibilities": [
+          "Stores uncompiled Markdown posts, Hugo templates, and static assets",
+          "Maintains version control history, pull requests, and peer reviews",
+          "Emits push webhook event to trigger GitHub Actions CI/CD workflow"
+        ],
+        "failureModes": [
+          "Merge conflicts on `main` branch resolved via pull requests",
+          "GitHub platform webhook delivery delay"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "# Repository Structure\n├── .github/workflows/deploy.yml\n├── config.toml\n├── content/\n│   └── posts/\n├── layouts/\n├── static/\n└── themes/"
+        }
+      }
+    },
+    {
+      "id": "node-github-actions",
+      "type": "architectureNode",
+      "position": {
+        "x": 700,
+        "y": 200
+      },
+      "data": {
+        "id": "node-github-actions",
+        "label": "GitHub Actions Runner",
+        "subtitle": "Hugo Extended CI/CD Builder",
+        "category": "compute",
+        "description": "Ephemeral Linux CI/CD runner that checks out the repository, executes Hugo Extended to compile Markdown into static assets, generates sitemaps, and pushes artifacts to `gh-pages`.",
+        "iconName": "Cpu",
+        "techStack": [
+          "GitHub Actions",
+          "Hugo Extended",
+          "PostCSS",
+          "HTML Minifier",
+          "Git Deploy Action"
+        ],
+        "specs": {
+          "qps": "1 Build / Push",
+          "p99Latency": "< 35s Total Build Time",
+          "replicas": "2 vCPU Ephemeral Runner",
+          "sla": "99.9% Build Success",
+          "stateful": false
+        },
+        "responsibilities": [
+          "Checks out source repository and theme submodules",
+          "Executes `hugo --minify --gc` to generate HTML, CSS, JS, and images",
+          "Generates XML sitemaps, RSS feeds, robots.txt, and OpenGraph tags",
+          "Generates `CNAME` file containing custom domain string",
+          "Commits and deploys `public/` build output to `gh-pages` branch"
+        ],
+        "failureModes": [
+          "Hugo template syntax error or broken shortcode halts pipeline",
+          "Invalid front-matter date or unclosed Markdown tag"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "name: Deploy Hugo Site to Pages\non:\n  push:\n    branches: [ main ]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          submodules: true\n          fetch-depth: 0\n      - name: Setup Hugo\n        uses: peaceiris/actions-hugo@v3\n        with:\n          hugo-version: 'latest'\n          extended: true\n      - name: Build\n        run: hugo --minify --gc\n      - name: Deploy to gh-pages\n        uses: peaceiris/actions-gh-pages@v4\n        with:\n          github_token: ${{ secrets.GITHUB_TOKEN }}\n          publish_dir: ./public\n          publish_branch: gh-pages\n          cname: techflow.io"
+        }
+      }
+    },
+    {
+      "id": "node-github-pages-branch",
+      "type": "architectureNode",
+      "position": {
+        "x": 1020,
+        "y": 200
+      },
+      "data": {
+        "id": "node-github-pages-branch",
+        "label": "GitHub Pages Branch",
+        "subtitle": "Branch: gh-pages (Published Site)",
+        "category": "storage",
+        "description": "Orphan Git branch containing solely the compiled static production bundle (HTML, CSS, JS, sitemap.xml) and root CNAME record for GitHub Pages web engine.",
+        "iconName": "HardDrive",
+        "techStack": [
+          "Git gh-pages",
+          "Minified HTML/CSS/JS",
+          "CNAME File",
+          "sitemap.xml",
+          "RSS Feed"
+        ],
+        "specs": {
+          "qps": "Static Storage Target",
+          "p99Latency": "< 10ms Disk Read",
+          "replicas": "GitHub Geo-Distributed Storage",
+          "sla": "99.99% Durability",
+          "stateful": true
+        },
+        "responsibilities": [
+          "Holds production-ready static assets built by GitHub Actions",
+          "Houses root `CNAME` file containing target custom domain",
+          "Acts as the deployment source branch for GitHub Pages"
+        ],
+        "failureModes": [
+          "Accidental manual overwrite prevented via branch protection rules"
+        ],
+        "configSnippet": {
+          "language": "text",
+          "code": "# gh-pages Root File Tree\n├── CNAME (contains: techflow.io)\n├── index.html\n├── posts/\n│   └── my-post/index.html\n├── sitemap.xml\n├── index.xml (RSS)\n└── assets/\n    ├── css/style.min.css\n    └── js/main.min.js"
+        }
+      }
+    },
+    {
+      "id": "node-github-pages-origin",
+      "type": "architectureNode",
+      "position": {
+        "x": 1340,
+        "y": 200
+      },
+      "data": {
+        "id": "node-github-pages-origin",
+        "label": "GitHub Pages Origin",
+        "subtitle": "Static Web Server & TLS Proxy",
+        "category": "gateway",
+        "description": "GitHub Pages web serving infrastructure. Resolves domain mapping from CNAME file, handles Let's Encrypt TLS certificates, and serves pre-rendered static files.",
+        "iconName": "Server",
+        "techStack": [
+          "GitHub Pages Proxy",
+          "HTTP/2",
+          "Let's Encrypt SSL",
+          "Gzip Compression"
+        ],
+        "specs": {
+          "qps": "100K+ req/min Origin Limit",
+          "p99Latency": "< 75ms TTFB Origin",
+          "replicas": "Geo-Distributed Origin",
+          "sla": "99.9% Origin SLA",
+          "stateful": false
+        },
+        "responsibilities": [
+          "Maps incoming HTTP host headers to the corresponding `gh-pages` repository",
+          "Provides automatic origin TLS termination and HTTPS redirection",
+          "Serves static assets and handles 404 fallback page routing",
+          "Acts as the secure origin server for Cloudflare CDN edge"
+        ],
+        "failureModes": [
+          "Origin rate limits during massive traffic spikes (mitigated by Cloudflare CDN cache)"
+        ],
+        "configSnippet": {
+          "language": "json",
+          "code": "{\n  \"githubPagesConfig\": {\n    \"source\": \"gh-pages\",\n    \"customDomain\": \"techflow.io\",\n    \"httpsEnforced\": true,\n    \"status\": \"built\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "id": "node-cloudflare-edge",
+      "type": "architectureNode",
+      "position": {
+        "x": 1660,
+        "y": 200
+      },
+      "data": {
+        "id": "node-cloudflare-edge",
+        "label": "Cloudflare Edge CDN & DNS",
+        "subtitle": "Global Anycast DNS & Edge Cache",
+        "category": "gateway",
+        "description": "Authoritative DNS and Edge Content Delivery Network. Manages one-time CNAME/A records pointing to GitHub Pages, terminates TLS (Full Strict), and caches static assets at 330+ edge locations.",
+        "iconName": "Globe",
+        "techStack": [
+          "Cloudflare DNS",
+          "Anycast Edge CDN",
+          "Brotli Compression",
+          "HTTP/3 / QUIC",
+          "TLS 1.3 (Full Strict)",
+          "DDoS Shield"
+        ],
+        "specs": {
+          "qps": "Unlimited Edge Scale",
+          "p99Latency": "< 12ms Edge Cache Hit",
+          "replicas": "330+ Global Edge Data Centers",
+          "sla": "99.999% DNS & CDN SLA",
+          "stateful": false
+        },
+        "responsibilities": [
+          "Authoritative DNS resolution (CNAME: `techflow.io` -> `<username>.github.io`)",
+          "Global Anycast edge caching for HTML pages, CSS, JS, images, and fonts",
+          "Delivers instant First Contentful Paint (FCP) and 99%+ origin offload",
+          "HTTP/3 QUIC transport and modern Brotli asset compression",
+          "Enterprise DDoS mitigation and web application firewall protection"
+        ],
+        "failureModes": [
+          "Stale edge cache after new publish (mitigated by automated cache purge webhook or short HTML TTL)"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "# Cloudflare DNS Records\nType:  CNAME\nName:  @ (or www)\nTarget: username.github.io\nProxy: Proxied (Orange Cloud ON)\n\n# Edge Cache Rules\n- HTML Pages: Cache TTL 4 Hours (Edge Cache-Control)\n- Assets (.css, .js, .png): Cache TTL 1 Year (Immutable)\n- SSL/TLS Mode: Full (Strict)"
+        }
+      }
+    },
+    {
+      "id": "node-global-visitors",
+      "type": "architectureNode",
+      "position": {
+        "x": 1980,
+        "y": 500
+      },
+      "data": {
+        "id": "node-global-visitors",
+        "label": "Global Visitors & Crawlers",
+        "subtitle": "Desktop, Mobile & Googlebot",
+        "category": "client",
+        "description": "End-user audience and search engine bots worldwide requesting web pages over HTTP/3, receiving pre-rendered HTML in under 15ms with full SEO indexing.",
+        "iconName": "Users",
+        "techStack": [
+          "Modern Web Browsers",
+          "Search Engine Bots",
+          "PWA Cache",
+          "Edge Clients"
+        ],
+        "specs": {
+          "qps": "Worldwide Audience",
+          "p99Latency": "< 15ms First Paint",
+          "replicas": "Distributed Global Users",
+          "sla": "100% Static Availability",
+          "stateful": false
+        },
+        "responsibilities": [
+          "Receives fast First Contentful Paint (FCP) from closest Cloudflare Edge PoP",
+          "Executes lightweight client-side interactions and dark/light theme toggle",
+          "Search engine bots crawl auto-generated `sitemap.xml` for maximum SEO ranking"
+        ],
+        "failureModes": [
+          "Client-side offline state (handled gracefully via Service Worker PWA cache)"
+        ],
+        "configSnippet": {
+          "language": "html",
+          "code": "<!-- High-Performance Static Document -->\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>TechFlow — Zero-Cost Architecture</title>\n  <link rel=\"canonical\" href=\"https://techflow.io/posts/jamstack/\">\n  <link rel=\"stylesheet\" href=\"/assets/css/style.min.css\">\n</head>\n<body>\n  <!-- Instant Static Content -->\n</body>\n</html>"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-git-push",
+      "source": "node-author-local",
+      "target": "node-github-source",
+      "label": "Git Push (main)",
+      "animated": false,
+      "data": {
+        "id": "edge-git-push",
+        "protocol": "TCP / TLS",
+        "latency": "~180ms",
+        "payloadType": "Git Commit Object",
+        "payloadSample": "commit 8f3d1b (HEAD -> main)\nAuthor: Utkarsh <utkarsh@techflow.io>\nDate: Fri Sep 18 09:30:00 2026\n\nfeat: publish new hugo static architecture guide\n\n+ content/posts/github-pages-hugo.md (145 lines)",
+        "authRequired": true,
+        "description": "Local workstation commits Markdown post and pushes to GitHub source repository over SSH/TLS."
+      }
+    },
+    {
+      "id": "edge-ci-webhook",
+      "source": "node-github-source",
+      "target": "node-github-actions",
+      "label": "Webhook (push event)",
+      "animated": true,
+      "data": {
+        "id": "edge-ci-webhook",
+        "protocol": "REST / HTTPS",
+        "latency": "< 50ms",
+        "payloadType": "GitHub Webhook JSON",
+        "payloadSample": "{\n  \"ref\": \"refs/heads/main\",\n  \"event\": \"push\",\n  \"head_commit\": {\n    \"id\": \"8f3d1b98a\",\n    \"message\": \"feat: publish new hugo static architecture guide\",\n    \"added\": [\"content/posts/github-pages-hugo.md\"]\n  }\n}",
+        "authRequired": true,
+        "description": "GitHub automatically detects push to `main` and dispatches workflow execution event to Actions runner."
+      }
+    },
+    {
+      "id": "edge-hugo-deploy",
+      "source": "node-github-actions",
+      "target": "node-github-pages-branch",
+      "label": "Deploy Artifact & CNAME",
+      "animated": true,
+      "data": {
+        "id": "edge-hugo-deploy",
+        "protocol": "TCP / TLS",
+        "latency": "~2.5s",
+        "payloadType": "Static Bundle Commit",
+        "payloadSample": "Deploying to branch gh-pages:\n+ CNAME (techflow.io)\n+ index.html (24 KB, minified)\n+ sitemap.xml (12 KB)\n+ assets/css/style.min.css (18 KB)\n+ assets/js/main.min.js (14 KB)\nTotal: 48 files generated in 240ms",
+        "authRequired": true,
+        "description": "GitHub Actions compiles Markdown via Hugo Extended and pushes minified HTML bundle + CNAME to `gh-pages` branch."
+      }
+    },
+    {
+      "id": "edge-pages-origin-mount",
+      "source": "node-github-pages-branch",
+      "target": "node-github-pages-origin",
+      "label": "Static Pages Engine",
+      "animated": false,
+      "data": {
+        "id": "edge-pages-origin-mount",
+        "protocol": "REST / HTTPS",
+        "latency": "< 15ms",
+        "payloadType": "VFS Static Mount",
+        "payloadSample": "GET /posts/github-pages-hugo/index.html HTTP/2\nHost: username.github.io\nStatus: 200 OK\nContent-Type: text/html; charset=utf-8\nCache-Control: max-age=600\nContent-Encoding: gzip",
+        "authRequired": false,
+        "description": "GitHub Pages web server reads static files from `gh-pages` branch and binds the custom domain specified in CNAME."
+      }
+    },
+    {
+      "id": "edge-cloudflare-dns-origin",
+      "source": "node-cloudflare-edge",
+      "target": "node-github-pages-origin",
+      "label": "CNAME DNS & Origin Pull",
+      "animated": true,
+      "data": {
+        "id": "edge-cloudflare-dns-origin",
+        "protocol": "REST / HTTPS",
+        "latency": "~65ms (Cache Miss Only)",
+        "payloadType": "HTTPS Origin Proxy",
+        "payloadSample": "GET /posts/github-pages-hugo/ HTTP/2\nHost: techflow.io\nCF-Connecting-IP: 198.51.100.42\nCF-RAY: 82c4f1a23e98\nX-Forwarded-Proto: https\n\nHTTP/2 200 OK\nCF-Cache-Status: MISS -> STORED",
+        "authRequired": false,
+        "description": "Cloudflare Anycast DNS resolves custom domain to GitHub Pages. On cache miss, Cloudflare pulls origin asset and caches it."
+      }
+    },
+    {
+      "id": "edge-visitor-cloudflare",
+      "source": "node-global-visitors",
+      "target": "node-cloudflare-edge",
+      "label": "HTTP/3 Anycast Cache Hit",
+      "animated": true,
+      "data": {
+        "id": "edge-visitor-cloudflare",
+        "protocol": "REST / HTTPS",
+        "latency": "< 12ms Edge FCP",
+        "payloadType": "HTTP/3 Response",
+        "payloadSample": "GET https://techflow.io/posts/github-pages-hugo/ HTTP/3\n\nHTTP/3 200 OK\nContent-Type: text/html; charset=utf-8\nContent-Encoding: br (Brotli)\nCF-Cache-Status: HIT\nAge: 1420\nAlt-Svc: h3=\":443\"; ma=86400\nServer: cloudflare",
+        "authRequired": false,
+        "description": "Global visitor browser establishes ultra-low-latency HTTP/3 connection with nearest Cloudflare PoP, receiving cached page in < 15ms."
+      }
+    }
+  ],
+  "simulationFlow": [
+    {
+      "step": 1,
+      "title": "Local Authoring in Markdown & Hugo Preview",
+      "description": "The author drafts new architectural articles in Markdown with TOML front-matter on their local workstation, previewing changes instantaneously using Hugo's sub-50ms live-reload server.",
+      "activeNodeIds": [
+        "node-author-local"
+      ],
+      "activeEdgeIds": [],
+      "payload": {
+        "action": "Local Live-Reload Preview",
+        "protocol": "Local HTTP / VFS",
+        "sample": "Watching for changes in /content, /layouts, /static\nChange detected: content/posts/github-pages-hugo.md\nRebuilt in 18 ms\nServing at http://localhost:1313/"
+      },
+      "durationMs": 1500,
+      "latencyExpectation": "< 50ms Livereload"
+    },
+    {
+      "step": 2,
+      "title": "Git Push to GitHub Source Repository (`main`)",
+      "description": "The author stages changes and executes a `git push origin main`. The GitHub source repository receives the commit, validates branch protection, and emits a webhook event.",
+      "activeNodeIds": [
+        "node-author-local",
+        "node-github-source"
+      ],
+      "activeEdgeIds": [
+        "edge-git-push"
+      ],
+      "payload": {
+        "action": "Git Push Source Code",
+        "protocol": "TCP / TLS (SSH)",
+        "sample": "Counting objects: 4, done.\nWriting objects: 100% (4/4), 4.2 KiB | 4.2 MiB/s, done.\nTo github.com:techflow/blog.git\n   3a1c2d..8f3d1b  main -> main"
+      },
+      "durationMs": 2000,
+      "latencyExpectation": "~180ms Git Push"
+    },
+    {
+      "step": 3,
+      "title": "GitHub Actions Triggers Hugo Extended CI/CD Compilation",
+      "description": "GitHub Actions provisions an ephemeral runner, checks out the repository with submodules, and runs `hugo --minify --gc` to compile Markdown into minified HTML, CSS, JS, and XML sitemaps.",
+      "activeNodeIds": [
+        "node-github-source",
+        "node-github-actions"
+      ],
+      "activeEdgeIds": [
+        "edge-ci-webhook"
+      ],
+      "payload": {
+        "action": "Hugo Static Compilation",
+        "protocol": "REST / Webhook",
+        "sample": "Start building sites …\nhugo v0.128.0-extended-linux-amd64\nTotal in 242 ms\nPages            : 48\nStatic files     : 112\nSitemap          : 1 (sitemap.xml)\nRSS Feeds        : 1 (index.xml)"
+      },
+      "durationMs": 2500,
+      "latencyExpectation": "< 30s CI Pipeline"
+    },
+    {
+      "step": 4,
+      "title": "Automated Deployment to `gh-pages` Branch with CNAME",
+      "description": "GitHub Actions commits the compiled `public/` directory and writes the custom domain `CNAME` file to the dedicated `gh-pages` publishing branch.",
+      "activeNodeIds": [
+        "node-github-actions",
+        "node-github-pages-branch"
+      ],
+      "activeEdgeIds": [
+        "edge-hugo-deploy"
+      ],
+      "payload": {
+        "action": "Deploy Artifact to gh-pages",
+        "protocol": "TCP / TLS Git Push",
+        "sample": "Deploying to gh-pages branch...\n- Writing CNAME: techflow.io\n- Pushing 48 static files to origin/gh-pages\nDeployment completed successfully."
+      },
+      "durationMs": 2000,
+      "latencyExpectation": "~2.5s Branch Commit"
+    },
+    {
+      "step": 5,
+      "title": "GitHub Pages Origin Web Server Mounts Custom Domain",
+      "description": "GitHub Pages detects the updated `gh-pages` branch, binds the custom domain from the CNAME file, enables TLS certificates, and prepares the origin web server.",
+      "activeNodeIds": [
+        "node-github-pages-branch",
+        "node-github-pages-origin"
+      ],
+      "activeEdgeIds": [
+        "edge-pages-origin-mount"
+      ],
+      "payload": {
+        "action": "Pages Origin Virtual Host Binding",
+        "protocol": "HTTPS Static Server",
+        "sample": "Domain: techflow.io\nTarget: gh-pages branch\nHTTPS: Active (Let's Encrypt)\nOrigin Status: Ready for CDN Ingress"
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "< 15ms Static Mount"
+    },
+    {
+      "step": 6,
+      "title": "Cloudflare Anycast CDN Caching & Sub-15ms Global Delivery",
+      "description": "Cloudflare Anycast DNS resolves the custom domain to the nearest edge PoP. Static assets and HTML are cached in Cloudflare Edge RAM/NVMe, delivering sub-15ms First Paint to global visitors over HTTP/3 with zero hosting cost.",
+      "activeNodeIds": [
+        "node-github-pages-origin",
+        "node-cloudflare-edge",
+        "node-global-visitors"
+      ],
+      "activeEdgeIds": [
+        "edge-cloudflare-dns-origin",
+        "edge-visitor-cloudflare"
+      ],
+      "payload": {
+        "action": "Global Edge Delivery",
+        "protocol": "HTTP/3 / QUIC + Brotli",
+        "sample": "HTTP/3 200 OK\nHost: techflow.io\nCF-Cache-Status: HIT\nContent-Encoding: br\nTime to First Byte (TTFB): 11.4 ms\nFirst Contentful Paint: 84 ms\nInfrastructure Cost: $0.00 / month"
+      },
+      "durationMs": 2200,
+      "latencyExpectation": "< 12ms Edge Cache Hit"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "decision": "GitHub Pages + Hugo Jamstack vs. Traditional Dynamic CMS (WordPress / Ghost on EC2/VPS)",
+      "chosenApproach": "Static Site Generation (Hugo) hosted on GitHub Pages with Cloudflare Edge CDN",
+      "pros": [
+        "Zero Ongoing Hosting Cost: $0/month infrastructure on GitHub Pages + Cloudflare Free Tier forever",
+        "One-Time DNS & SSL Configuration: Cloudflare handles Anycast routing and automatic Full Strict HTTPS",
+        "Superior SEO & Automated Sitemaps: Hugo automatically generates canonical URLs, OpenGraph social cards, XML sitemaps, and RSS feeds",
+        "Complete Theme & Layout Control: Full customization of HTML/CSS/JS without database plugins or CMS bloat",
+        "Client-Side Content Speed & Security: Pure static files eliminate SQL injections, PHP vulnerabilities, and backend exploits",
+        "Frictionless Authoring Workflow: Write in standard Markdown, version control every post in Git with branch protection",
+        "Ultra-Fast First Page Paint: Cloudflare Global Anycast Edge CDN caches assets within 15ms of 95% of world population"
+      ],
+      "cons": [
+        "No Server-Side Dynamic Compute: Cannot execute server-side PHP/Node/Python scripts; dynamic features like comments, search, or forms require client-side third-party APIs (e.g. Giscus, Algolia, Formspree) or serverless functions",
+        "Rebuild Required for Content Updates: Every change requires a ~30-45s GitHub Actions CI/CD compile and push cycle before going live"
+      ],
+      "rejectedAlternatives": [
+        "WordPress on AWS EC2 / DigitalOcean ($15-60/mo hosting, MySQL maintenance, security patching, plugin bloat)",
+        "Ghost CMS on Docker VPS ($10-30/mo, database backup management, memory overhead)",
+        "Static Site with AWS S3 + CloudFront (High complexity, CloudFront data egress costs, manual IAM setup)"
+      ]
+    },
+    {
+      "decision": "Static Site Generator: Hugo vs. Gatsby / Next.js Static Export vs. Jekyll",
+      "chosenApproach": "Hugo Extended (Golang Single Binary)",
+      "pros": [
+        "Blazing Fast Compilation: Builds 1,000+ pages in under 250ms (50x faster than Jekyll and Node-based SSGs)",
+        "Zero Node.js Dependency Hell: Single binary with zero `node_modules` vulnerabilities or breaking npm updates",
+        "Native Asset Pipelines: Built-in SCSS/SASS transpilation, PostCSS, asset fingerprinting, and image resizing"
+      ],
+      "cons": [
+        "Go Template Syntax: Requires learning Golang `html/template` syntax instead of JSX/React"
+      ],
+      "rejectedAlternatives": [
+        "Jekyll (Ruby dependencies, slow build times for large sites > 500 pages)",
+        "Next.js SSG Export (Heavy JavaScript client hydration bundle, frequent major version migrations)"
+      ]
+    }
+  ],
+  "securityAndCompliance": [
+    {
+      "area": "Edge SSL/TLS & Transport Security",
+      "standard": "TLS 1.3 / Full Strict SSL / HSTS",
+      "implementation": "Cloudflare enforces Full (Strict) SSL with GitHub Pages origin certificates, automated HTTP to HTTPS redirection, and strict HTTP Strict Transport Security (HSTS) headers."
+    },
+    {
+      "area": "Zero Attack Surface (Immunized from Backend Exploits)",
+      "standard": "Static Asset Security / OWASP Top 10",
+      "implementation": "Without dynamic server runtimes, databases, or server-side interpreters (PHP/Python/Node), the architecture is naturally immune to SQL injection, remote code execution (RCE), and server-side request forgery (SSRF)."
+    },
+    {
+      "area": "DDoS Mitigation & Edge Shielding",
+      "standard": "Cloudflare Layer 3/4/7 DDoS Protection",
+      "implementation": "Cloudflare Anycast absorbs multi-terabit volumetric DDoS attacks at edge data centers without traffic ever reaching GitHub Pages origin servers."
+    },
+    {
+      "area": "GitOps Branch Security & Provenance",
+      "standard": "GitHub Branch Protection & Signed Commits",
+      "implementation": "GitHub `main` and `gh-pages` branches enforce protected status with required status checks, preventing unauthorized direct pushes and ensuring cryptographic commit provenance."
+    }
+  ],
+  "keyMetrics": {
+    "availabilitySLA": "99.99% Edge SLA",
+    "readLatencyP99": "< 12ms Edge Cache",
+    "writeLatencyP99": "~35s CI/CD Deploy",
+    "resilienceTier": "Global Anycast Multi-PoP",
+    "costOptimizationTier": "100% Zero-Cost ($0/mo)"
+  }
+}

@@ -1,0 +1,620 @@
+{
+  "id": "arch-ai-agent-rag",
+  "slug": "ai-agent-rag-mesh",
+  "title": "Enterprise Multi-Agent LLM RAG & Vector Memory Mesh",
+  "enabled": true,
+  "subtitle": "Distributed semantic search, hybrid sparse-dense retrieval, agentic tool orchestration, and LLM guardrails at enterprise scale.",
+  "category": "AI & LLM Orchestration",
+  "version": "v3.1.2",
+  "author": {
+    "name": "Dr. Elena Rostova",
+    "role": "Chief AI Systems Architect",
+    "avatar": "ER"
+  },
+  "lastUpdated": "2026-09-16",
+  "readingTime": "8 min read",
+  "tags": [
+    "LLM",
+    "Qdrant",
+    "RAG",
+    "FastAPI",
+    "Redis Cache",
+    "Hybrid Search",
+    "LangGraph"
+  ],
+  "overview": {
+    "summary": "A resilient multi-agent RAG system powering autonomous domain copilot swarms with sub-second semantic retrieval, token caching, hallucination guardrails, and secure sandboxed tool execution.",
+    "problemStatement": "Direct LLM queries lack fresh organizational knowledge, exhibit unpredictable hallucinations, risk prompt injection attacks, and incur exorbitant token inference costs.",
+    "corePrinciples": [
+      "Hybrid dense-sparse retrieval combining vector embeddings and BM25 full-text rankers",
+      "Hierarchical agent orchestration with dynamic step budgeting and loop breakers",
+      "Semantic caching layer reducing up to 68% of redundant LLM token costs",
+      "Zero-data-leakage guardrail gateway with streaming token validation"
+    ],
+    "targetScale": {
+      "dailyActiveUsers": "3.2 Million enterprise queries/day",
+      "throughput": "4,500 concurrent agent chains",
+      "storageVolume": "250 Million embedded vector vectors (1536-dim)",
+      "globalLatencyP99": "850 ms (first token streaming)"
+    }
+  },
+  "keyMetrics": {
+    "availabilitySLA": "99.95%",
+    "readLatencyP99": "18 ms (Semantic Cache Hit)",
+    "writeLatencyP99": "120 ms (Vector Ingestion)",
+    "resilienceTier": "Multi-Region Distributed Vector Shards",
+    "costOptimizationTier": "Tier 1 (68% Token Cache Efficiency)"
+  },
+  "nodes": [
+    {
+      "id": "ai-client",
+      "type": "architectureNode",
+      "position": {
+        "x": 40,
+        "y": 200
+      },
+      "data": {
+        "id": "ai-client",
+        "label": "Enterprise Copilot UI",
+        "subtitle": "SSE & WebSocket Streaming",
+        "category": "client",
+        "description": "Interactive AI interface supporting real-time token streaming, cited source popovers, and multimodal attachments.",
+        "iconName": "Bot",
+        "techStack": [
+          "React",
+          "Vite",
+          "Server-Sent Events",
+          "TailwindCSS"
+        ],
+        "specs": {
+          "qps": "25K concurrent sessions",
+          "p99Latency": "20 ms UI response",
+          "replicas": "Global Edge",
+          "sla": "99.99%",
+          "failoverStrategy": "Client reconnect retry with state re-hydration"
+        }
+      }
+    },
+    {
+      "id": "guardrail-proxy",
+      "type": "architectureNode",
+      "position": {
+        "x": 300,
+        "y": 200
+      },
+      "data": {
+        "id": "guardrail-proxy",
+        "label": "Guardrails & Safety Gateway",
+        "subtitle": "Prompt Defense & PII Redaction",
+        "category": "security",
+        "description": "High-throughput security proxy inspecting user prompts for injection attacks, jailbreaks, PII scrubbing, and quota limits.",
+        "iconName": "Shield",
+        "techStack": [
+          "Rust",
+          "NeMo Guardrails",
+          "Presidio",
+          "OpenResty"
+        ],
+        "specs": {
+          "qps": "30K req/s",
+          "p99Latency": "4.2 ms",
+          "replicas": "12 Pods",
+          "sla": "99.999%",
+          "failoverStrategy": "Active fail-close on security anomalies"
+        },
+        "responsibilities": [
+          "Sanitizes prompts and scrubs sensitive PII tokens",
+          "Enforces organizational content security policies",
+          "Validates semantic intent classification"
+        ]
+      }
+    },
+    {
+      "id": "agent-orchestrator",
+      "type": "architectureNode",
+      "position": {
+        "x": 580,
+        "y": 200
+      },
+      "data": {
+        "id": "agent-orchestrator",
+        "label": "Agent Swarm Orchestrator",
+        "subtitle": "LangGraph & Task Planner",
+        "category": "ai",
+        "description": "Stateful workflow engine coordinating planner agents, tool selector bots, and iterative reasoning loops with execution limits.",
+        "iconName": "Workflow",
+        "techStack": [
+          "Python 3.12",
+          "FastAPI",
+          "LangGraph",
+          "Temporal"
+        ],
+        "specs": {
+          "qps": "8K agent workflows/s",
+          "p99Latency": "22 ms planning overhead",
+          "replicas": "24 Workers",
+          "sla": "99.95%",
+          "failoverStrategy": "Stateful checkpointing via Temporal workflow graphs"
+        },
+        "responsibilities": [
+          "Decomposes complex requests into directed acyclic graphs (DAG)",
+          "Routes subtasks to specialized specialist agents",
+          "Controls max iteration count to prevent runaway reasoning loops"
+        ]
+      }
+    },
+    {
+      "id": "semantic-cache",
+      "type": "architectureNode",
+      "position": {
+        "x": 580,
+        "y": 420
+      },
+      "data": {
+        "id": "semantic-cache",
+        "label": "Semantic Prompt Cache",
+        "subtitle": "Redis Vector Cosine Cache",
+        "category": "cache",
+        "description": "Embedding-based similarity cache intercepting duplicate and semantically similar queries before dispatching to LLM providers.",
+        "iconName": "Layers",
+        "techStack": [
+          "Redis 7.2",
+          "RedisVL",
+          "HNSW Index",
+          "Cosine Similarity"
+        ],
+        "specs": {
+          "qps": "40K lookup QPS",
+          "p99Latency": "1.4 ms",
+          "replicas": "6 Shards",
+          "sla": "99.99%",
+          "failoverStrategy": "Cluster replica auto-promotion"
+        },
+        "responsibilities": [
+          "Stores query embeddings and verified response pairs",
+          "Returns cached responses on > 0.96 cosine similarity",
+          "Saves substantial LLM API costs and token quotas"
+        ]
+      }
+    },
+    {
+      "id": "embedding-service",
+      "type": "architectureNode",
+      "position": {
+        "x": 880,
+        "y": 70
+      },
+      "data": {
+        "id": "embedding-service",
+        "label": "Vector Embedding Pipeline",
+        "subtitle": "GPU-accelerated BGE / OpenAI",
+        "category": "compute",
+        "description": "High-throughput embedding worker converting incoming chunks and queries into normalized 1536-dimensional vectors.",
+        "iconName": "Zap",
+        "techStack": [
+          "Triton Inference Server",
+          "BGE-Large-en-v1.5",
+          "CUDA 12",
+          "ONNX"
+        ],
+        "specs": {
+          "qps": "15K embeds/s",
+          "p99Latency": "8.5 ms (GPU batch)",
+          "replicas": "8 NVIDIA L4 GPUs",
+          "sla": "99.95%",
+          "failoverStrategy": "Dynamic batching with CPU fallback cluster"
+        }
+      }
+    },
+    {
+      "id": "vector-db",
+      "type": "architectureNode",
+      "position": {
+        "x": 1160,
+        "y": 200
+      },
+      "data": {
+        "id": "vector-db",
+        "label": "Qdrant Vector Engine",
+        "subtitle": "Hybrid Vector & BM25 Store",
+        "category": "database",
+        "description": "Distributed vector database combining HNSW graphs with payload filtering, multitenant namespaces, and sparse-dense reciprocal rank fusion.",
+        "iconName": "Database",
+        "techStack": [
+          "Qdrant Rust",
+          "HNSW Index",
+          "Quantized Vectors",
+          "S3 Storage"
+        ],
+        "specs": {
+          "qps": "25K search QPS",
+          "p99Latency": "14 ms",
+          "replicas": "12 Distributed Shards",
+          "sla": "99.99%",
+          "failoverStrategy": "Raft consensus with 3x replication factor"
+        },
+        "responsibilities": [
+          "Performs approximate nearest neighbor search (ANN)",
+          "Enforces tenant document access control lists at index level",
+          "Executes hybrid fusion ranking for top-k relevant context chunks"
+        ]
+      }
+    },
+    {
+      "id": "llm-cluster",
+      "type": "architectureNode",
+      "position": {
+        "x": 880,
+        "y": 340
+      },
+      "data": {
+        "id": "llm-cluster",
+        "label": "LLM Inference Mesh",
+        "subtitle": "vLLM Multi-Model Gateway",
+        "category": "compute",
+        "description": "Multi-provider model gateway routing queries across self-hosted vLLM clusters (Llama-3, DeepSeek) and proprietary LLM endpoints with automatic fallback.",
+        "iconName": "Cpu",
+        "techStack": [
+          "vLLM",
+          "PagedAttention",
+          "OpenAI API",
+          "Anthropic Claude"
+        ],
+        "specs": {
+          "qps": "12K tokens/s generated",
+          "p99Latency": "650 ms TTFT",
+          "replicas": "32 H100 GPUs + Cloud API fallback",
+          "sla": "99.9%",
+          "failoverStrategy": "Multi-provider automatic retry on 429/500 errors"
+        }
+      }
+    },
+    {
+      "id": "tool-sandbox",
+      "type": "architectureNode",
+      "position": {
+        "x": 880,
+        "y": 490
+      },
+      "data": {
+        "id": "tool-sandbox",
+        "label": "MicroVM Code Sandbox",
+        "subtitle": "Firecracker Isolated Execution",
+        "category": "security",
+        "description": "Ephemeral microVM sandbox allowing agents to safely run Python scripts, SQL queries, and API integrations with zero network escape risk.",
+        "iconName": "ShieldCheck",
+        "techStack": [
+          "Firecracker MicroVM",
+          "gVisor",
+          "Docker",
+          "WASM"
+        ],
+        "specs": {
+          "qps": "5K execution runs/s",
+          "p99Latency": "45 ms boot + exec",
+          "replicas": "64 Ephemeral VMs",
+          "sla": "99.99%",
+          "failoverStrategy": "Hardware-enforced memory isolation and hard timeout"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-ai-client-guard",
+      "source": "ai-client",
+      "target": "guardrail-proxy",
+      "label": "WSS / SSE Request",
+      "animated": true,
+      "data": {
+        "id": "e-ai-client-guard",
+        "protocol": "WebSocket",
+        "latency": "10 ms",
+        "payloadType": "UserPromptStream",
+        "authRequired": true,
+        "description": "Real-time user conversation stream with bearer authorization."
+      }
+    },
+    {
+      "id": "e-guard-orch",
+      "source": "guardrail-proxy",
+      "target": "agent-orchestrator",
+      "label": "Sanitized Prompt Stream",
+      "animated": true,
+      "data": {
+        "id": "e-guard-orch",
+        "protocol": "gRPC",
+        "latency": "1.2 ms",
+        "payloadType": "SanitizedPromptEvent",
+        "description": "Injection-tested prompt forwarded to orchestrator."
+      }
+    },
+    {
+      "id": "e-orch-cache",
+      "source": "agent-orchestrator",
+      "target": "semantic-cache",
+      "label": "Vector Cache Check",
+      "animated": true,
+      "data": {
+        "id": "e-orch-cache",
+        "protocol": "Redis Protocol",
+        "latency": "1.4 ms",
+        "payloadType": "CosineQuery (Threshold 0.96)",
+        "description": "Fast lookup for identical or semantically identical previous answers."
+      }
+    },
+    {
+      "id": "e-orch-embed",
+      "source": "agent-orchestrator",
+      "target": "embedding-service",
+      "label": "Query Vectorization",
+      "animated": true,
+      "data": {
+        "id": "e-orch-embed",
+        "protocol": "gRPC",
+        "latency": "8.5 ms",
+        "payloadType": "TextToVectorBatch (1536 dim)",
+        "description": "Converts user questions into high-dimensional vector representations."
+      }
+    },
+    {
+      "id": "e-embed-vdb",
+      "source": "embedding-service",
+      "target": "vector-db",
+      "label": "Hybrid ANN Retrieval",
+      "animated": true,
+      "data": {
+        "id": "e-embed-vdb",
+        "protocol": "Vector Query",
+        "latency": "14 ms",
+        "payloadType": "QdrantSearchRequest (k=10, HNSW)",
+        "description": "Finds most relevant knowledge chunks with tenant ACL filters."
+      }
+    },
+    {
+      "id": "e-vdb-orch",
+      "source": "vector-db",
+      "target": "agent-orchestrator",
+      "label": "Reranked Context Chunks",
+      "animated": true,
+      "data": {
+        "id": "e-vdb-orch",
+        "protocol": "gRPC",
+        "latency": "3.1 ms",
+        "payloadType": "TopKDocumentChunks (Relevance Score > 0.82)",
+        "description": "Returns verified enterprise knowledge chunks."
+      }
+    },
+    {
+      "id": "e-orch-llm",
+      "source": "agent-orchestrator",
+      "target": "llm-cluster",
+      "label": "Augmented Prompt & Gen",
+      "animated": true,
+      "data": {
+        "id": "e-orch-llm",
+        "protocol": "REST / HTTPS",
+        "latency": "25 ms initial token",
+        "payloadType": "SystemPrompt + Context + ChatHistory",
+        "description": "Streams generated response tokens back through orchestrator."
+      }
+    },
+    {
+      "id": "e-orch-sandbox",
+      "source": "agent-orchestrator",
+      "target": "tool-sandbox",
+      "label": "Safe Tool Invocation",
+      "animated": false,
+      "data": {
+        "id": "e-orch-sandbox",
+        "protocol": "gRPC",
+        "latency": "45 ms",
+        "payloadType": "ExecuteCodeSnippet / QuerySQL",
+        "description": "Isolated microVM executes calculations and data queries."
+      }
+    }
+  ],
+  "simulationFlow": [
+    {
+      "step": 1,
+      "title": "User Submits Multimodal RAG Query",
+      "description": "Enterprise user asks: 'Summarize our Q3 cloud infrastructure spend breakdown and identify cost anomalies exceeding $10k.'",
+      "activeNodeIds": [
+        "ai-client",
+        "guardrail-proxy"
+      ],
+      "activeEdgeIds": [
+        "e-ai-client-guard"
+      ],
+      "payload": {
+        "action": "STREAM /v1/chat/completions",
+        "protocol": "WSS / SSE",
+        "sample": {
+          "user_id": "usr_devops_44",
+          "query": "Summarize our Q3 cloud infrastructure spend breakdown...",
+          "tenant_id": "corp_us_east"
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "10 ms network roundtrip"
+    },
+    {
+      "step": 2,
+      "title": "Safety Proxy Checks Guardrails & Injection Defense",
+      "description": "Rust guardrail engine scans prompt for jailbreak patterns, ensures user has FinOps role permissions, and passes clean payload to orchestrator.",
+      "activeNodeIds": [
+        "guardrail-proxy",
+        "agent-orchestrator"
+      ],
+      "activeEdgeIds": [
+        "e-guard-orch"
+      ],
+      "payload": {
+        "action": "Guardrail Check: PASS",
+        "protocol": "gRPC",
+        "sample": {
+          "injection_score": 0.002,
+          "pii_detected": false,
+          "tenant_acl_verified": true
+        }
+      },
+      "durationMs": 1600,
+      "latencyExpectation": "4.2 ms security validation"
+    },
+    {
+      "step": 3,
+      "title": "Semantic Cache Evaluation & Vectorization",
+      "description": "Orchestrator looks up Redis Semantic Cache. On cache miss, sends prompt to GPU embedding server to generate dense vector representation.",
+      "activeNodeIds": [
+        "agent-orchestrator",
+        "embedding-service"
+      ],
+      "activeEdgeIds": [
+        "e-orch-embed"
+      ],
+      "payload": {
+        "action": "POST /v1/embeddings",
+        "protocol": "gRPC Protobuf",
+        "sample": {
+          "model": "bge-large-en-v1.5",
+          "embedding_dim": 1536,
+          "tokens_processed": 34
+        }
+      },
+      "durationMs": 2000,
+      "latencyExpectation": "8.5 ms GPU acceleration"
+    },
+    {
+      "step": 4,
+      "title": "Hybrid Search in Qdrant Vector Engine",
+      "description": "Qdrant executes an HNSW vector search combined with BM25 keyword matching across Q3 FinOps billing documents with tenant-level ACL filters.",
+      "activeNodeIds": [
+        "embedding-service",
+        "vector-db",
+        "agent-orchestrator"
+      ],
+      "activeEdgeIds": [
+        "e-embed-vdb",
+        "e-vdb-orch"
+      ],
+      "payload": {
+        "action": "Qdrant Hybrid Match (Dense + Sparse)",
+        "protocol": "Vector Query",
+        "sample": {
+          "chunks_retrieved": 5,
+          "top_score": 0.941,
+          "sources": [
+            "aws_billing_q3.parquet",
+            "dataproc_cost_audit.pdf"
+          ]
+        }
+      },
+      "durationMs": 2200,
+      "latencyExpectation": "14 ms HNSW lookup"
+    },
+    {
+      "step": 5,
+      "title": "Sandboxed Python Tool Execution for Precise Math",
+      "description": "Agent notices tabular billing records and invokes the isolated Firecracker MicroVM to calculate exact percentage variances rather than hallucinating math in LLM.",
+      "activeNodeIds": [
+        "agent-orchestrator",
+        "tool-sandbox"
+      ],
+      "activeEdgeIds": [
+        "e-orch-sandbox"
+      ],
+      "payload": {
+        "action": "Execute: Python Pandas Math",
+        "protocol": "gRPC Sandbox",
+        "sample": {
+          "code": "df[df['delta'] > 10000][['service', 'delta']].to_dict()",
+          "result": [
+            {
+              "service": "EKS-Egress",
+              "delta": 14200.00
+            }
+          ]
+        }
+      },
+      "durationMs": 2000,
+      "latencyExpectation": "45 ms isolated execution"
+    },
+    {
+      "step": 6,
+      "title": "LLM Generates Answer & Streams to UI with Citations",
+      "description": "vLLM synthesizes retrieved facts and verified math calculations, streaming markdown tokens and source citation cards directly back to the user.",
+      "activeNodeIds": [
+        "agent-orchestrator",
+        "llm-cluster",
+        "guardrail-proxy",
+        "ai-client"
+      ],
+      "activeEdgeIds": [
+        "e-orch-llm",
+        "e-guard-orch",
+        "e-ai-client-guard"
+      ],
+      "payload": {
+        "action": "Token Stream Delivery",
+        "protocol": "SSE Stream",
+        "sample": {
+          "token": "In Q3, EKS-Egress experienced an anomalous increase of $14,200 (+38%)...",
+          "citations": [
+            {
+              "doc": "dataproc_cost_audit.pdf",
+              "page": 4
+            }
+          ]
+        }
+      },
+      "durationMs": 2400,
+      "latencyExpectation": "25 ms time-to-first-token"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "decision": "MicroVM Tool Execution vs Direct LLM Arithmetic",
+      "chosenApproach": "Ephemeral Firecracker Sandboxes for Deterministic Math",
+      "pros": [
+        "100% calculation accuracy without LLM hallucination",
+        "Allows dynamic data processing on massive CSVs/dataframes",
+        "Zero host security risk with microVM kernel isolation"
+      ],
+      "cons": [
+        "Adds ~45ms execution overhead per tool invocation",
+        "Requires microVM pool management infrastructure"
+      ],
+      "rejectedAlternatives": [
+        "Allowing raw Python eval() in Python worker process",
+        "Relying purely on LLM reasoning for financial math"
+      ]
+    },
+    {
+      "decision": "Hybrid Vector Search vs Pure Dense Vector Matching",
+      "chosenApproach": "Qdrant HNSW Dense + Sparse BM25 Fusion",
+      "pros": [
+        "Finds exact keyword matches (e.g. error codes, product SKUs, exact part IDs)",
+        "Captures conceptual semantics and synonym paraphrasing",
+        "Improves retrieval recall by 34% over dense-only"
+      ],
+      "cons": [
+        "Higher memory usage for dual inverted indices"
+      ],
+      "rejectedAlternatives": [
+        "Dense-only embeddings without sparse scoring"
+      ]
+    }
+  ],
+  "securityAndCompliance": [
+    {
+      "area": "Prompt Injection & Jailbreak Defense",
+      "standard": "OWASP Top 10 for LLM Applications",
+      "implementation": "Multi-layer guardrail inspection with semantic vector distance to known attack signatures."
+    },
+    {
+      "area": "Multitenant Data Segregation",
+      "standard": "SOC2 Type II & GDPR",
+      "implementation": "Payload-level metadata filtering at vector database index layer, preventing cross-tenant retrieval leakage."
+    }
+  ]
+}

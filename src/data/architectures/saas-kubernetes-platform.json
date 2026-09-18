@@ -1,0 +1,505 @@
+{
+  "id": "arch-saas-k8s-mesh",
+  "slug": "saas-kubernetes-platform",
+  "title": "Global Multi-Tenant Cloud-Native SaaS Platform",
+  "enabled": false,
+  "subtitle": "Multi-region Kubernetes mesh, Envoy sidecar routing, CockroachDB geo-distributed SQL, and automated tenant isolation.",
+  "category": "Cloud Native & SaaS",
+  "version": "v4.0.1",
+  "author": {
+    "name": "Marcus Vance",
+    "role": "Staff Infrastructure Architect",
+    "avatar": "MV"
+  },
+  "lastUpdated": "2026-09-14",
+  "readingTime": "6 min read",
+  "tags": [
+    "Kubernetes",
+    "CockroachDB",
+    "Envoy",
+    "Istio",
+    "Golang",
+    "Cloudflare",
+    "OpenTelemetry"
+  ],
+  "overview": {
+    "summary": "A cloud-native, geo-distributed multi-tenant SaaS architecture running across AWS and GCP Kubernetes clusters with database-level tenant isolation, automated failover, and global low-latency edge routing.",
+    "problemStatement": "Global enterprise customers demand data residency compliance (GDPR/APPI), sub-50ms regional latencies, and total isolation from 'noisy neighbors' while minimizing per-tenant infrastructure overhead.",
+    "corePrinciples": [
+      "Cell-based multitenancy architecture with shared control plane and isolated data cells",
+      "Geo-partitioned CockroachDB SQL cluster pinning regional customer data to local jurisdiction",
+      "Envoy service mesh enforcing mutual TLS, canary routing, and circuit breaking",
+      "OpenTelemetry distributed tracing for end-to-end performance observability"
+    ],
+    "targetScale": {
+      "dailyActiveUsers": "14 Million active SaaS seats",
+      "throughput": "350,000 req/s across 4 global regions",
+      "storageVolume": "1.2 PB geo-partitioned relational state",
+      "globalLatencyP99": "42 ms worldwide"
+    }
+  },
+  "keyMetrics": {
+    "availabilitySLA": "99.99%",
+    "readLatencyP99": "6.8 ms",
+    "writeLatencyP99": "24 ms (Multi-Region Consensus)",
+    "resilienceTier": "Active-Active Multi-Cloud (AWS + GCP)",
+    "costOptimizationTier": "Tier 2 (Dynamic Auto-Scaling Cells)"
+  },
+  "nodes": [
+    {
+      "id": "global-cdn",
+      "type": "architectureNode",
+      "position": {
+        "x": 40,
+        "y": 200
+      },
+      "data": {
+        "id": "global-cdn",
+        "label": "Cloudflare Edge & WAF",
+        "subtitle": "Anycast DNS & DDoS Shield",
+        "category": "gateway",
+        "description": "300+ PoPs handling TLS termination, Web Application Firewall filtering, bot detection, and edge asset caching.",
+        "iconName": "Globe",
+        "techStack": [
+          "Cloudflare Enterprise",
+          "Anycast BGP",
+          "WAF Rulesets",
+          "Edge Workers"
+        ],
+        "specs": {
+          "qps": "1.5M peak edge req/s",
+          "p99Latency": "8 ms edge response",
+          "replicas": "310 Global PoPs",
+          "sla": "100% Uptime SLA",
+          "failoverStrategy": "Automated BGP health withdraw"
+        }
+      }
+    },
+    {
+      "id": "k8s-ingress",
+      "type": "architectureNode",
+      "position": {
+        "x": 300,
+        "y": 200
+      },
+      "data": {
+        "id": "k8s-ingress",
+        "label": "Ingress Controller & Envoy",
+        "subtitle": "Tenant Dynamic Router",
+        "category": "gateway",
+        "description": "Dynamic Envoy ingress inspecting subdomain & JWT claims to route traffic to the tenant's dedicated compute cell.",
+        "iconName": "Shuffle",
+        "techStack": [
+          "Envoy Gateway",
+          "Kubernetes Ingress",
+          "OpenTelemetry",
+          "Cert-Manager"
+        ],
+        "specs": {
+          "qps": "180K req/s per region",
+          "p99Latency": "1.4 ms",
+          "replicas": "24 Ingress Pods",
+          "sla": "99.999%",
+          "failoverStrategy": "Multi-cluster DNS failover"
+        }
+      }
+    },
+    {
+      "id": "auth-service",
+      "type": "architectureNode",
+      "position": {
+        "x": 580,
+        "y": 80
+      },
+      "data": {
+        "id": "auth-service",
+        "label": "Identity & RBAC Engine",
+        "subtitle": "OIDC / SAML & Session Store",
+        "category": "security",
+        "description": "Centralized authentication verifying enterprise SSO (Okta, Azure AD), generating cryptographically signed session tokens and tenant claims.",
+        "iconName": "Lock",
+        "techStack": [
+          "Go",
+          "Ory Hydra",
+          "Redis Cluster",
+          "WebAuthn"
+        ],
+        "specs": {
+          "qps": "80K auth verifications/s",
+          "p99Latency": "2.1 ms",
+          "replicas": "16 Pods",
+          "sla": "99.999%",
+          "failoverStrategy": "Replicated session cache with stateless token fallback"
+        }
+      }
+    },
+    {
+      "id": "core-services",
+      "type": "architectureNode",
+      "position": {
+        "x": 580,
+        "y": 270
+      },
+      "data": {
+        "id": "core-services",
+        "label": "Tenant Application Cells",
+        "subtitle": "Microservices Cluster (Go/Rust)",
+        "category": "compute",
+        "description": "Horizontally autoscaled application pods partitioned into isolated tenant tiers (Enterprise tier gets dedicated pod pools).",
+        "iconName": "Server",
+        "techStack": [
+          "Kubernetes 1.30",
+          "Go 1.23",
+          "Rust",
+          "gRPC",
+          "KEDA"
+        ],
+        "specs": {
+          "qps": "120K req/s",
+          "p99Latency": "8.2 ms",
+          "replicas": "120 Pods across 3 AZs",
+          "sla": "99.99%",
+          "failoverStrategy": "Kubernetes HPA + KEDA event autoscaling"
+        }
+      }
+    },
+    {
+      "id": "distributed-db",
+      "type": "architectureNode",
+      "position": {
+        "x": 880,
+        "y": 200
+      },
+      "data": {
+        "id": "distributed-db",
+        "label": "CockroachDB Geo Cluster",
+        "subtitle": "Distributed Relational SQL",
+        "category": "database",
+        "description": "Multi-region distributed SQL database with row-level geo-partitioning, serializable transactions, and automatic range repair.",
+        "iconName": "Database",
+        "techStack": [
+          "CockroachDB 24.1",
+          "Raft Consensus",
+          "RocksDB Engine",
+          "Pebble"
+        ],
+        "specs": {
+          "qps": "90K SQL QPS",
+          "p99Latency": "5.5 ms local read / 28 ms cross-region commit",
+          "replicas": "18 Nodes (6 per region)",
+          "sla": "99.999%",
+          "failoverStrategy": "Automatic Raft leaseholder rebalancing (< 2s)"
+        }
+      }
+    },
+    {
+      "id": "event-bus",
+      "type": "architectureNode",
+      "position": {
+        "x": 880,
+        "y": 420
+      },
+      "data": {
+        "id": "event-bus",
+        "label": "Async Worker & Event Bus",
+        "subtitle": "NATS JetStream & Temporal",
+        "category": "queue",
+        "description": "Ultra-lightweight high-throughput message streaming engine coordinating background exports, billing webhooks, and email dispatches.",
+        "iconName": "Zap",
+        "techStack": [
+          "NATS.io JetStream",
+          "Temporal.io",
+          "Redis Streams"
+        ],
+        "specs": {
+          "qps": "250K msgs/s",
+          "p99Latency": "0.9 ms",
+          "replicas": "6 NATS Clustered Nodes",
+          "sla": "99.99%",
+          "failoverStrategy": "Clustered Raft storage quorum"
+        }
+      }
+    },
+    {
+      "id": "telemetry-stack",
+      "type": "architectureNode",
+      "position": {
+        "x": 1160,
+        "y": 200
+      },
+      "data": {
+        "id": "telemetry-stack",
+        "label": "Observability & Audit Mesh",
+        "subtitle": "Prometheus, Tempo & ClickHouse",
+        "category": "monitoring",
+        "description": "Unified telemetry backend capturing metrics, distributed trace spans, and immutable customer audit trails for compliance.",
+        "iconName": "Activity",
+        "techStack": [
+          "OpenTelemetry",
+          "Grafana Mimir",
+          "Grafana Tempo",
+          "ClickHouse"
+        ],
+        "specs": {
+          "qps": "1.2M metrics/sec",
+          "p99Latency": "15 ms query",
+          "replicas": "12 Collector Pods",
+          "sla": "99.9%",
+          "failoverStrategy": "Buffered local disk spooling during network partition"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-cdn-ingress",
+      "source": "global-cdn",
+      "target": "k8s-ingress",
+      "label": "mTLS Tunnel",
+      "animated": true,
+      "data": {
+        "id": "e-cdn-ingress",
+        "protocol": "TCP / TLS",
+        "latency": "14 ms",
+        "payloadType": "Encrypted Customer HTTPS",
+        "authRequired": true,
+        "description": "Origin TLS connection authenticated with Cloudflare Origin CA."
+      }
+    },
+    {
+      "id": "e-ingress-auth",
+      "source": "k8s-ingress",
+      "target": "auth-service",
+      "label": "Token Validation",
+      "animated": true,
+      "data": {
+        "id": "e-ingress-auth",
+        "protocol": "gRPC",
+        "latency": "1.8 ms",
+        "payloadType": "CheckAuthRequest (JWT / SAML)",
+        "description": "Fast local JWT introspect and scope verification."
+      }
+    },
+    {
+      "id": "e-ingress-core",
+      "source": "k8s-ingress",
+      "target": "core-services",
+      "label": "Cell Routing",
+      "animated": true,
+      "data": {
+        "id": "e-ingress-core",
+        "protocol": "gRPC",
+        "latency": "0.8 ms",
+        "payloadType": "TenantContext + RequestPayload",
+        "description": "Direct pod-to-pod routing within tenant isolation namespace."
+      }
+    },
+    {
+      "id": "e-core-db",
+      "source": "core-services",
+      "target": "distributed-db",
+      "label": "Geo SQL Queries",
+      "animated": true,
+      "data": {
+        "id": "e-core-db",
+        "protocol": "SQL",
+        "latency": "5.5 ms",
+        "payloadType": "SQL SELECT/INSERT with tenant_id prefix",
+        "description": "Local regional leaseholder queries with strict row-level security."
+      }
+    },
+    {
+      "id": "e-core-bus",
+      "source": "core-services",
+      "target": "event-bus",
+      "label": "Publish Async Events",
+      "animated": true,
+      "data": {
+        "id": "e-core-bus",
+        "protocol": "Kafka Topic",
+        "latency": "0.9 ms",
+        "payloadType": "TenantWebhookEvent / UsageRecord",
+        "description": "Dispatches background tasks without delaying client HTTP responses."
+      }
+    },
+    {
+      "id": "e-db-telemetry",
+      "source": "distributed-db",
+      "target": "telemetry-stack",
+      "label": "Trace Spans & Audit Logs",
+      "animated": false,
+      "data": {
+        "id": "e-db-telemetry",
+        "protocol": "gRPC",
+        "latency": "2.1 ms",
+        "payloadType": "OTel Span & Audit Log Batch",
+        "description": "Streams query execution metadata and security audit trails."
+      }
+    },
+    {
+      "id": "e-core-telemetry",
+      "source": "core-services",
+      "target": "telemetry-stack",
+      "label": "Metrics & Traces",
+      "animated": false,
+      "data": {
+        "id": "e-core-telemetry",
+        "protocol": "gRPC",
+        "latency": "1.5 ms",
+        "payloadType": "OpenTelemetry Metrics Push",
+        "description": "Application latency, error budgets, and tenant usage metrics."
+      }
+    }
+  ],
+  "simulationFlow": [
+    {
+      "step": 1,
+      "title": "Client Requests Organization Dashboard",
+      "description": "Customer in Frankfurt connects to acme.saasplatform.com. Cloudflare edge intercepts traffic and applies DDoS inspection.",
+      "activeNodeIds": [
+        "global-cdn",
+        "k8s-ingress"
+      ],
+      "activeEdgeIds": [
+        "e-cdn-ingress"
+      ],
+      "payload": {
+        "action": "GET /api/v1/dashboard/metrics",
+        "protocol": "HTTPS (TLS 1.3)",
+        "sample": {
+          "host": "acme.saasplatform.com",
+          "region": "eu-central-1",
+          "ip": "194.25.0.12"
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "14 ms edge termination"
+    },
+    {
+      "step": 2,
+      "title": "Envoy Ingress Authenticates Tenant Claims",
+      "description": "Envoy queries the Auth Service to decrypt customer JWT, extract tenant organization ID, and assert permission policies.",
+      "activeNodeIds": [
+        "k8s-ingress",
+        "auth-service"
+      ],
+      "activeEdgeIds": [
+        "e-ingress-auth"
+      ],
+      "payload": {
+        "action": "Auth Introspect Token",
+        "protocol": "gRPC",
+        "sample": {
+          "tenant_id": "org_acme_corp_eu",
+          "role": "admin",
+          "allowed_scopes": [
+            "read:analytics",
+            "write:settings"
+          ]
+        }
+      },
+      "durationMs": 1600,
+      "latencyExpectation": "1.8 ms local auth check"
+    },
+    {
+      "step": 3,
+      "title": "Envoy Routes to European Compute Cell",
+      "description": "Based on tenant tenancy policy, request is routed via Istio mTLS to the dedicated EU Kubernetes microservice pod cluster.",
+      "activeNodeIds": [
+        "k8s-ingress",
+        "core-services"
+      ],
+      "activeEdgeIds": [
+        "e-ingress-core"
+      ],
+      "payload": {
+        "action": "Route to Pod: core-service-eu-7f98b",
+        "protocol": "gRPC / mTLS",
+        "sample": {
+          "cell": "cell-eu-prod-02",
+          "tracing_id": "span_77b319"
+        }
+      },
+      "durationMs": 1600,
+      "latencyExpectation": "0.8 ms pod-to-pod"
+    },
+    {
+      "step": 4,
+      "title": "Geo-Partitioned SQL Read from CockroachDB",
+      "description": "Core service reads customer records from CockroachDB. The local Frankfurt leaseholder satisfies the read locally with zero transatlantic latency.",
+      "activeNodeIds": [
+        "core-services",
+        "distributed-db"
+      ],
+      "activeEdgeIds": [
+        "e-core-db"
+      ],
+      "payload": {
+        "action": "SELECT * FROM org_data WHERE tenant_id = 'org_acme_corp_eu'",
+        "protocol": "PostgreSQL Wire",
+        "sample": {
+          "region_pin": "eu-central-1",
+          "rows_returned": 150,
+          "execution_ms": 3.4
+        }
+      },
+      "durationMs": 2000,
+      "latencyExpectation": "5.5 ms local leaseholder"
+    },
+    {
+      "step": 5,
+      "title": "Asynchronous Usage Metering & Audit Push",
+      "description": "Service publishes usage metrics to NATS JetStream for billing aggregation and emits distributed tracing spans to Telemetry mesh.",
+      "activeNodeIds": [
+        "core-services",
+        "event-bus",
+        "telemetry-stack"
+      ],
+      "activeEdgeIds": [
+        "e-core-bus",
+        "e-core-telemetry"
+      ],
+      "payload": {
+        "action": "Emit: TenantUsageReported",
+        "protocol": "NATS JetStream",
+        "sample": {
+          "tenant": "org_acme_corp_eu",
+          "api_credits_consumed": 1,
+          "trace_id": "span_77b319"
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "0.9 ms background push"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "decision": "Geo-Partitioned CockroachDB vs Separate Regional PostgreSQL DBs",
+      "chosenApproach": "Unified Multi-Region CockroachDB Cluster",
+      "pros": [
+        "Enforces regional data residency laws automatically at table schema level",
+        "Allows single unified operational cluster without complex manual cross-region replication scripts",
+        "Zero downtime rolling upgrades and automatic node rebalancing"
+      ],
+      "cons": [
+        "Cross-region write transactions incur WAN consensus latency (~60-120ms)",
+        "Higher memory and CPU footprint per node"
+      ],
+      "rejectedAlternatives": [
+        "Individual isolated Postgres instances with custom Kafka CDC sync"
+      ]
+    }
+  ],
+  "securityAndCompliance": [
+    {
+      "area": "Data Residency & Sovereignty",
+      "standard": "GDPR & EU Data Protection Directive",
+      "implementation": "CockroachDB REGIONAL BY ROW tables pinning EU user rows strictly to EU availability zones."
+    },
+    {
+      "area": "Tenant Network Isolation",
+      "standard": "SOC2 & FedRAMP Moderate",
+      "implementation": "Kubernetes NetworkPolicies and Cilium eBPF rules blocking cross-namespace pod communication."
+    }
+  ]
+}

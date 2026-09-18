@@ -1,0 +1,718 @@
+{
+  "id": "arch-cqrs-event-sourcing",
+  "slug": "realtime-event-sourcing",
+  "title": "Real-Time FinTech Event Sourcing & CQRS Ledger",
+  "enabled": false,
+  "subtitle": "Sub-millisecond high-frequency ledger processing with transactional outbox, Kafka event backbone, and ClickHouse OLAP projections.",
+  "category": "FinTech & Streaming",
+  "version": "v2.4.0",
+  "author": {
+    "name": "Alex Chen",
+    "role": "Principal Distributed Systems Architect",
+    "avatar": "AC"
+  },
+  "lastUpdated": "2026-09-15",
+  "readingTime": "7 min read",
+  "tags": [
+    "Kafka",
+    "CQRS",
+    "ClickHouse",
+    "PostgreSQL",
+    "Go",
+    "Redis",
+    "Event Sourcing"
+  ],
+  "overview": {
+    "summary": "An immutable, audit-compliant financial ledger architecture capable of processing 120,000 transactions/sec with strict idempotency and zero data loss. Employs Command Query Responsibility Segregation (CQRS) with optimized read/write paths.",
+    "problemStatement": "Traditional ACID databases suffer severe write lock contention during high-frequency balance adjustments and global trading spikes, while analytics queries degrade transactional throughput.",
+    "corePrinciples": [
+      "Immutable Event Journal as the absolute single source of truth",
+      "Transactional Outbox Pattern guaranteeing at-least-once message delivery without 2PC",
+      "Asynchronous Read Model Projections optimized for sub-10ms user query latencies",
+      "Deterministic State Reconstruction via event stream replay"
+    ],
+    "targetScale": {
+      "dailyActiveUsers": "8.5 Million",
+      "throughput": "120,000 peak TPS",
+      "storageVolume": "45 TB immutable log / month",
+      "globalLatencyP99": "18 ms end-to-end"
+    }
+  },
+  "keyMetrics": {
+    "availabilitySLA": "99.999%",
+    "readLatencyP99": "4.2 ms",
+    "writeLatencyP99": "12.8 ms",
+    "resilienceTier": "Active-Active Multi-AZ",
+    "costOptimizationTier": "Tier 1 (High Efficiency Tiered Storage)"
+  },
+  "nodes": [
+    {
+      "id": "client-apps",
+      "type": "architectureNode",
+      "position": {
+        "x": 40,
+        "y": 200
+      },
+      "data": {
+        "id": "client-apps",
+        "label": "Client Edge & Apps",
+        "subtitle": "Mobile, Web & HFT Trading APIs",
+        "category": "client",
+        "description": "Multi-platform client surface interfacing through TLS 1.3 with client-side request signatures and idempotency tokens.",
+        "iconName": "Smartphone",
+        "techStack": [
+          "Next.js",
+          "React Native",
+          "Flutter",
+          "mTLS"
+        ],
+        "specs": {
+          "qps": "150K req/s",
+          "p99Latency": "15 ms (Edge)",
+          "replicas": "Global CDN",
+          "sla": "99.99%",
+          "failoverStrategy": "Anycast BGP Edge Routing",
+          "stateful": false
+        },
+        "responsibilities": [
+          "Generates unique UUIDv7 idempotency keys",
+          "Validates request payload schemas client-side",
+          "Maintains persistent bi-directional WebSocket channels"
+        ],
+        "failureModes": [
+          "Local network drops (handled with exponential backoff offline queues)"
+        ]
+      }
+    },
+    {
+      "id": "api-gateway",
+      "type": "architectureNode",
+      "position": {
+        "x": 300,
+        "y": 200
+      },
+      "data": {
+        "id": "api-gateway",
+        "label": "Kong API Gateway",
+        "subtitle": "Rate Limiting & Auth Validation",
+        "category": "gateway",
+        "description": "High-performance Envoy-based API gateway handling token introspection, global rate-limiting, and routing between Command and Query engines.",
+        "iconName": "ShieldCheck",
+        "techStack": [
+          "Kong",
+          "Envoy Proxy",
+          "Lua",
+          "Redis Sentinel"
+        ],
+        "specs": {
+          "qps": "200K req/s",
+          "p99Latency": "1.2 ms",
+          "replicas": "16 Pods (HPA: 8-32)",
+          "sla": "99.999%",
+          "failoverStrategy": "Multi-Zone Round Robin",
+          "stateful": false
+        },
+        "responsibilities": [
+          "JWT & mTLS authentication and scope validation",
+          "Sliding-window distributed token-bucket rate limiting",
+          "Splits mutating Commands from read Queries"
+        ],
+        "failureModes": [
+          "Rate limiter outage (fails open to local memory fallback token bucket)"
+        ]
+      }
+    },
+    {
+      "id": "command-service",
+      "type": "architectureNode",
+      "position": {
+        "x": 580,
+        "y": 90
+      },
+      "data": {
+        "id": "command-service",
+        "label": "Order & Ledger Service",
+        "subtitle": "Command Handler (Go + gRPC)",
+        "category": "compute",
+        "description": "Validates business invariants (e.g. account balance, margin checks), commits event entities to Write-Store, and atomically appends outbox records.",
+        "iconName": "Zap",
+        "techStack": [
+          "Go 1.23",
+          "gRPC",
+          "Protobuf",
+          "Uber Zap"
+        ],
+        "specs": {
+          "qps": "60K write QPS",
+          "p99Latency": "4.5 ms",
+          "replicas": "24 Pods",
+          "sla": "99.999%",
+          "failoverStrategy": "K8s Pod Disruption Budget with PreStop hooks",
+          "stateful": false
+        },
+        "responsibilities": [
+          "Strict domain invariant and balance boundary validation",
+          "Generates Domain Events (e.g., OrderPlaced, LedgerDebited)",
+          "Writes atomic transactions to PostgreSQL Master + Outbox Table"
+        ]
+      }
+    },
+    {
+      "id": "write-db",
+      "type": "architectureNode",
+      "position": {
+        "x": 880,
+        "y": 90
+      },
+      "data": {
+        "id": "write-db",
+        "label": "Transactional DB",
+        "subtitle": "PostgreSQL 16 Primary (ACID)",
+        "category": "database",
+        "description": "High-write primary database storing normalized domain entities and the transactional outbox table with strict serializable isolation.",
+        "iconName": "Database",
+        "techStack": [
+          "PostgreSQL 16",
+          "PgBouncer",
+          "NVMe SSD",
+          "WAL-G"
+        ],
+        "specs": {
+          "qps": "45K TPS writes",
+          "p99Latency": "2.8 ms",
+          "replicas": "1 Primary + 2 Sync Standbys",
+          "sla": "99.999%",
+          "failoverStrategy": "Patroni automated failover (< 3s RTO, 0 RPO)",
+          "stateful": true
+        },
+        "responsibilities": [
+          "Guarantees ACID transactions for command state mutations",
+          "Maintains Outbox log table for CDC ingestion",
+          "Synchronous streaming replication to standby nodes"
+        ]
+      }
+    },
+    {
+      "id": "debezium-outbox",
+      "type": "architectureNode",
+      "position": {
+        "x": 1160,
+        "y": 90
+      },
+      "data": {
+        "id": "debezium-outbox",
+        "label": "Debezium CDC Connector",
+        "subtitle": "Log-based Change Data Capture",
+        "category": "queue",
+        "description": "Reads PostgreSQL write-ahead log (WAL) records using pgoutput logical decoding and converts outbox rows into guaranteed Kafka event streams.",
+        "iconName": "Workflow",
+        "techStack": [
+          "Debezium 2.6",
+          "Kafka Connect",
+          "Avro",
+          "Schema Registry"
+        ],
+        "specs": {
+          "qps": "100K events/s",
+          "p99Latency": "3.5 ms lag",
+          "replicas": "6 Distributed Workers",
+          "sla": "99.99%",
+          "failoverStrategy": "Distributed group rebalance",
+          "stateful": true
+        },
+        "responsibilities": [
+          "Extracts outbox events from Postgres WAL logs",
+          "Serializes payloads with Confluent Schema Registry Avro formats",
+          "Ensures exactly-once delivery semantics into Kafka partitions"
+        ]
+      }
+    },
+    {
+      "id": "kafka-cluster",
+      "type": "architectureNode",
+      "position": {
+        "x": 1160,
+        "y": 320
+      },
+      "data": {
+        "id": "kafka-cluster",
+        "label": "Apache Kafka Mesh",
+        "subtitle": "Event Backbone (KRaft Mode)",
+        "category": "queue",
+        "description": "High-throughput partitioned event broker orchestrating domain events, replayable event logs, and downstream projection pipelines.",
+        "iconName": "Cpu",
+        "techStack": [
+          "Kafka 3.8 (KRaft)",
+          "Confluent Schema Registry",
+          "Tiered Storage"
+        ],
+        "specs": {
+          "qps": "500K msgs/s",
+          "p99Latency": "1.8 ms",
+          "replicas": "9 Brokers (3 AZs)",
+          "sla": "99.999%",
+          "failoverStrategy": "ISR min.insync.replicas=2 with ack=all",
+          "stateful": true
+        },
+        "responsibilities": [
+          "Partitioning events by aggregate root ID (Account/Order)",
+          "Long-term immutable event log storage via S3 tiered storage",
+          "Provides event back-pressure for asynchronous consumers"
+        ]
+      }
+    },
+    {
+      "id": "projection-engine",
+      "type": "architectureNode",
+      "position": {
+        "x": 880,
+        "y": 320
+      },
+      "data": {
+        "id": "projection-engine",
+        "label": "Projection Consumer Engine",
+        "subtitle": "Stream Processors (Rust / Flink)",
+        "category": "compute",
+        "description": "Consumes raw domain events, performs streaming aggregations, and writes denormalized read-models to Redis and ClickHouse.",
+        "iconName": "Activity",
+        "techStack": [
+          "Rust",
+          "Apache Flink",
+          "Tokio Async",
+          "Serde"
+        ],
+        "specs": {
+          "qps": "120K events/s",
+          "p99Latency": "2.1 ms",
+          "replicas": "18 Stream Workers",
+          "sla": "99.99%",
+          "failoverStrategy": "Checkpoint state recovery via RocksDB backend",
+          "stateful": true
+        },
+        "responsibilities": [
+          "Builds materialised balance summaries and user portfolio models",
+          "Updates low-latency Redis cache for hot accounts",
+          "Batches columnar writes to ClickHouse OLAP cluster"
+        ]
+      }
+    },
+    {
+      "id": "read-cache",
+      "type": "architectureNode",
+      "position": {
+        "x": 580,
+        "y": 320
+      },
+      "data": {
+        "id": "read-cache",
+        "label": "Redis Cluster + ClickHouse",
+        "subtitle": "Denormalized Query Projections",
+        "category": "cache",
+        "description": "Dual read tier combining memory-speed Redis key-value stores for live balances and ClickHouse for historical audit analytics.",
+        "iconName": "Layers",
+        "techStack": [
+          "Redis 7.2 Cluster",
+          "ClickHouse Cloud",
+          "Memory Cache"
+        ],
+        "specs": {
+          "qps": "250K read QPS",
+          "p99Latency": "0.6 ms (Redis) / 12 ms (ClickHouse)",
+          "replicas": "12 Shards (Redis) + 6 Nodes (ClickHouse)",
+          "sla": "99.999%",
+          "failoverStrategy": "Redis Sentinel auto-failover & ClickHouse Keeper",
+          "stateful": true
+        },
+        "responsibilities": [
+          "Serves sub-millisecond account balance & portfolio reads",
+          "Executes complex historical ledger analytics across billions of events",
+          "Zero lock interference with write pipeline"
+        ]
+      }
+    },
+    {
+      "id": "query-service",
+      "type": "architectureNode",
+      "position": {
+        "x": 300,
+        "y": 380
+      },
+      "data": {
+        "id": "query-service",
+        "label": "Query & WebSocket Engine",
+        "subtitle": "Read Model API (Node / Go)",
+        "category": "compute",
+        "description": "High-concurrency read gateway streaming real-time balance updates over WebSockets and fulfilling complex GraphQL/REST queries.",
+        "iconName": "Radio",
+        "techStack": [
+          "Node.js 22",
+          "Fastify",
+          "GraphQL",
+          "Redis Pub/Sub"
+        ],
+        "specs": {
+          "qps": "180K req/s",
+          "p99Latency": "3.2 ms",
+          "replicas": "30 Pods",
+          "sla": "99.99%",
+          "failoverStrategy": "Stateless horizontal autoscale",
+          "stateful": false
+        },
+        "responsibilities": [
+          "Pushes real-time order fill updates to connected clients",
+          "Queries Redis and ClickHouse for balance & ledger views",
+          "Aggregates multi-account balance metrics"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-gw",
+      "source": "client-apps",
+      "target": "api-gateway",
+      "label": "HTTPS / WS (TLS 1.3)",
+      "animated": true,
+      "data": {
+        "id": "e-client-gw",
+        "protocol": "REST / HTTPS",
+        "latency": "12 ms",
+        "payloadType": "OrderCommand / BalanceQuery",
+        "authRequired": true,
+        "rateLimit": "1000 req/min per IP",
+        "description": "Authenticated user requests with cryptographic idempotency keys."
+      }
+    },
+    {
+      "id": "e-gw-cmd",
+      "source": "api-gateway",
+      "target": "command-service",
+      "label": "gRPC (Mutations)",
+      "animated": true,
+      "data": {
+        "id": "e-gw-cmd",
+        "protocol": "gRPC",
+        "latency": "1.1 ms",
+        "payloadType": "protobuf.SubmitTransaction",
+        "authRequired": true,
+        "description": "Fast binary gRPC routing for balance and ledger mutations."
+      }
+    },
+    {
+      "id": "e-cmd-db",
+      "source": "command-service",
+      "target": "write-db",
+      "label": "ACID Write + Outbox",
+      "animated": true,
+      "data": {
+        "id": "e-cmd-db",
+        "protocol": "SQL",
+        "latency": "2.4 ms",
+        "payloadType": "SQL INSERT / UPDATE Transaction",
+        "authRequired": true,
+        "description": "Transactional commit appending event record and domain snapshot."
+      }
+    },
+    {
+      "id": "e-db-cdc",
+      "source": "write-db",
+      "target": "debezium-outbox",
+      "label": "WAL Replication Log",
+      "animated": true,
+      "data": {
+        "id": "e-db-cdc",
+        "protocol": "eBPF / Mesh",
+        "latency": "0.8 ms",
+        "payloadType": "PostgreSQL WAL stream (pgoutput)",
+        "description": "Streaming logical replication reading transaction logs asynchronously."
+      }
+    },
+    {
+      "id": "e-cdc-kafka",
+      "source": "debezium-outbox",
+      "target": "kafka-cluster",
+      "label": "Kafka Ingestion (Avro)",
+      "animated": true,
+      "data": {
+        "id": "e-cdc-kafka",
+        "protocol": "Kafka Topic",
+        "latency": "1.5 ms",
+        "payloadType": "ledger.events.v1 (Avro)",
+        "description": "Publishing ordered domain events to aggregate-keyed partitions."
+      }
+    },
+    {
+      "id": "e-kafka-proj",
+      "source": "kafka-cluster",
+      "target": "projection-engine",
+      "label": "Consumer Group Stream",
+      "animated": true,
+      "data": {
+        "id": "e-kafka-proj",
+        "protocol": "Kafka Topic",
+        "latency": "1.2 ms",
+        "payloadType": "Batch of 500 Domain Events",
+        "description": "Continuous event consumption with consumer group checkpointing."
+      }
+    },
+    {
+      "id": "e-proj-cache",
+      "source": "projection-engine",
+      "target": "read-cache",
+      "label": "Write Projections",
+      "animated": true,
+      "data": {
+        "id": "e-proj-cache",
+        "protocol": "Redis Protocol",
+        "latency": "0.7 ms",
+        "payloadType": "MSET / Bulk ClickHouse INSERT",
+        "description": "Denormalizing event stream into high-speed query models."
+      }
+    },
+    {
+      "id": "e-gw-query",
+      "source": "api-gateway",
+      "target": "query-service",
+      "label": "HTTP / WS Queries",
+      "animated": false,
+      "data": {
+        "id": "e-gw-query",
+        "protocol": "REST / HTTPS",
+        "latency": "0.9 ms",
+        "payloadType": "GetBalance / GetLedgerHistory",
+        "description": "Read requests routed directly to query microservice."
+      }
+    },
+    {
+      "id": "e-query-cache",
+      "source": "query-service",
+      "target": "read-cache",
+      "label": "Sub-ms Read Lookups",
+      "animated": false,
+      "data": {
+        "id": "e-query-cache",
+        "protocol": "Redis Protocol",
+        "latency": "0.4 ms",
+        "payloadType": "HGETALL balance:acc_4901",
+        "description": "Direct read query against Redis cache and ClickHouse engine."
+      }
+    },
+    {
+      "id": "e-query-client",
+      "source": "query-service",
+      "target": "client-apps",
+      "label": "Real-Time WebSocket Push",
+      "animated": true,
+      "data": {
+        "id": "e-query-client",
+        "protocol": "WebSocket",
+        "latency": "8.0 ms",
+        "payloadType": "BalanceUpdatedEvent (JSON)",
+        "description": "Pushing live updated ledger states directly to client UI."
+      }
+    }
+  ],
+  "simulationFlow": [
+    {
+      "step": 1,
+      "title": "Client Dispatches Signed Transfer Command",
+      "description": "User submits a fund transfer of $5,000 USD. The client signs the payload using an ECDSA key and attaches a UUIDv7 idempotency token.",
+      "activeNodeIds": [
+        "client-apps",
+        "api-gateway"
+      ],
+      "activeEdgeIds": [
+        "e-client-gw"
+      ],
+      "payload": {
+        "action": "POST /api/v2/ledger/transfer",
+        "protocol": "HTTPS (TLS 1.3)",
+        "sample": {
+          "idempotencyKey": "idem_8941_a3f9e",
+          "fromAccount": "acc_usr_902",
+          "toAccount": "acc_usr_411",
+          "amount": 5000.0,
+          "currency": "USD"
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "12 ms network roundtrip"
+    },
+    {
+      "step": 2,
+      "title": "Gateway Rate Checks & Routes to Command Service",
+      "description": "Gateway validates the bearer JWT, asserts the rate-limit token bucket, and forwards the command over internal gRPC.",
+      "activeNodeIds": [
+        "api-gateway",
+        "command-service"
+      ],
+      "activeEdgeIds": [
+        "e-gw-cmd"
+      ],
+      "payload": {
+        "action": "gRPC CommandService.ExecuteTransfer",
+        "protocol": "gRPC / Protobuf",
+        "sample": {
+          "traceId": "trace_99f2b1",
+          "userId": "usr_902",
+          "amountCents": 500000,
+          "signatureValid": true
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "1.1 ms internal gRPC"
+    },
+    {
+      "step": 3,
+      "title": "Transactional Outbox Commit to Primary DB",
+      "description": "Command service checks account balance constraints and executes a single ACID transaction committing the entity mutation and appending an outbox record.",
+      "activeNodeIds": [
+        "command-service",
+        "write-db"
+      ],
+      "activeEdgeIds": [
+        "e-cmd-db"
+      ],
+      "payload": {
+        "action": "BEGIN; INSERT INTO outbox_events ... COMMIT;",
+        "protocol": "PostgreSQL Wire Protocol",
+        "sample": {
+          "event_type": "FundsTransferred",
+          "aggregate_id": "acc_usr_902",
+          "outbox_status": "PENDING"
+        }
+      },
+      "durationMs": 2200,
+      "latencyExpectation": "2.4 ms SSD write"
+    },
+    {
+      "step": 4,
+      "title": "Debezium Captures WAL and Publishes to Kafka",
+      "description": "Debezium streams the WAL transaction event without double-writing and emits an Avro-encoded message to the partitioned Kafka topic.",
+      "activeNodeIds": [
+        "write-db",
+        "debezium-outbox",
+        "kafka-cluster"
+      ],
+      "activeEdgeIds": [
+        "e-db-cdc",
+        "e-cdc-kafka"
+      ],
+      "payload": {
+        "action": "Kafka Producer ack=all",
+        "protocol": "Kafka Binary Protocol",
+        "sample": {
+          "topic": "fintech.ledger.transfers.v1",
+          "partition": 14,
+          "offset": 4920199,
+          "event": "FundsTransferred"
+        }
+      },
+      "durationMs": 2000,
+      "latencyExpectation": "2.3 ms CDC stream"
+    },
+    {
+      "step": 5,
+      "title": "Projection Engine Updates Redis & ClickHouse",
+      "description": "Rust stream workers consume the Kafka event, calculate updated balances, and populate Redis key-value cache and ClickHouse OLAP tables.",
+      "activeNodeIds": [
+        "kafka-cluster",
+        "projection-engine",
+        "read-cache"
+      ],
+      "activeEdgeIds": [
+        "e-kafka-proj",
+        "e-proj-cache"
+      ],
+      "payload": {
+        "action": "HSET balance:acc_usr_902 & ClickHouse INSERT",
+        "protocol": "Redis RESP3 / Native TCP",
+        "sample": {
+          "account": "acc_usr_902",
+          "newBalance": 45200.5,
+          "stateVersion": 1049
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "1.9 ms async projection"
+    },
+    {
+      "step": 6,
+      "title": "Real-Time WebSocket Push to Client UI",
+      "description": "The Query service detects the projection update via Redis PubSub and instantly pushes the live balance change to the user's active screen.",
+      "activeNodeIds": [
+        "read-cache",
+        "query-service",
+        "client-apps"
+      ],
+      "activeEdgeIds": [
+        "e-query-cache",
+        "e-query-client"
+      ],
+      "payload": {
+        "action": "WS Send frame: AccountBalanceUpdated",
+        "protocol": "WebSocket frame",
+        "sample": {
+          "event": "BALANCE_UPDATE",
+          "account": "acc_usr_902",
+          "balance": 45200.5,
+          "timestamp": "2026-09-17T23:50:00Z"
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "8.4 ms end-to-end user push"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "decision": "Transactional Outbox over Dual-Writing (DB + Kafka)",
+      "chosenApproach": "Transactional Outbox with Debezium CDC",
+      "pros": [
+        "Eliminates silent dual-write divergence and ghost transactions",
+        "Zero performance penalty on HTTP request thread",
+        "Guarantees at-least-once message delivery to Kafka"
+      ],
+      "cons": [
+        "Adds Debezium / Kafka Connect operational footprint",
+        "Sub-second eventual consistency lag on read projections"
+      ],
+      "rejectedAlternatives": [
+        "Two-Phase Commit (2PC / XA)",
+        "Synchronous Dual Write in Go Service"
+      ]
+    },
+    {
+      "decision": "Redis Cluster + ClickHouse vs Direct Read-Replicas",
+      "chosenApproach": "Denormalized Dedicated CQRS Read Store",
+      "pros": [
+        "P99 read latency drops from 45ms to 0.6ms on hot queries",
+        "Complex financial queries never lock primary transactional tables",
+        "ClickHouse supports billions of rows of historical ledger inspection"
+      ],
+      "cons": [
+        "Requires maintaining asynchronous projection worker code",
+        "Clients must tolerate up to 15ms eventual consistency delay"
+      ],
+      "rejectedAlternatives": [
+        "Postgres Read Replicas with heavy SQL JOINs"
+      ]
+    }
+  ],
+  "securityAndCompliance": [
+    {
+      "area": "Ledger Immutability",
+      "standard": "SOX Compliance & Financial Auditability",
+      "implementation": "Append-only Kafka event logs backed by WORM S3 Object Lock and cryptographic hash chain verification."
+    },
+    {
+      "area": "Data in Transit",
+      "standard": "PCI-DSS 4.0 & Zero Trust",
+      "implementation": "mTLS with SPIFFE/SPIRE dynamic identities between internal microservices and AES-256-GCM payloads."
+    },
+    {
+      "area": "Idempotency & Replay",
+      "standard": "Bank Grade Double-Spend Prevention",
+      "implementation": "UUIDv7 deterministic keys validated in Redis distributed bloom filters and Postgres unique constraints."
+    }
+  ]
+}

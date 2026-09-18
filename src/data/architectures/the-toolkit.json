@@ -1,0 +1,247 @@
+{
+  "id": "arch-the-toolkit",
+  "slug": "the-toolkit",
+  "title": "The Toolkit",
+  "enabled": true,
+  "subtitle": "Curated developer tooling, platform engineering utilities, continuous delivery consoles, and source infrastructure.",
+  "category": "Developer Tooling & Platform",
+  "version": "v1.0.0",
+  "author": {
+    "name": "Utkarsh",
+    "role": "Lead Platform & DevSecOps Architect",
+    "avatar": "UT"
+  },
+  "lastUpdated": "2026-09-18",
+  "publishedDate": "2026-09-18",
+  "readingTime": "3 min read",
+  "tags": [
+    "DevOps",
+    "Tooling",
+    "GitOps",
+    "Argo",
+    "GitHub",
+    "CI/CD",
+    "Infrastructure"
+  ],
+  "overview": {
+    "summary": "A centralized platform hub and developer toolkit catalog. Features standalone nodes for mission-critical engineering hubs including Argo CD GitOps controller at argo.devutkarsh.com and GitHub source control repository at github.com.",
+    "problemStatement": "Modern engineering teams require rapid discovery and direct access to essential developer tooling, deployment management consoles, and version control repositories without navigating fragmented bookmarks or nested wiki pages.",
+    "corePrinciples": [
+      "Decoupled Tooling Architecture: Independent operational nodes mapped directly to active endpoints.",
+      "GitOps-Driven Platform Delivery: Argo continuously synchronizes declarative state from Git to production clusters.",
+      "Centralized Source Control: GitHub acts as the single source of truth for code, pipeline configurations, and security scanning.",
+      "Frictionless Developer Experience: Direct deep-links and operational telemetry accessible from a unified dashboard."
+    ],
+    "targetScale": {
+      "dailyActiveUsers": "Engineering & Platform Teams",
+      "throughput": "Continuous Webhooks & Sync Events",
+      "storageVolume": "Git Repositories & Manifests",
+      "globalLatencyP99": "< 50ms Control Plane Access"
+    }
+  },
+  "nodes": [
+    {
+      "id": "node-argo",
+      "type": "architectureNode",
+      "position": {
+        "x": 160,
+        "y": 180
+      },
+      "data": {
+        "id": "node-argo",
+        "label": "Argo",
+        "subtitle": "argo.devutkarsh.com",
+        "url": "https://argo.devutkarsh.com",
+        "category": "compute",
+        "description": "Declarative GitOps continuous delivery controller and workflow engine running at argo.devutkarsh.com. Automatically syncs Kubernetes cluster state with version-controlled manifests and monitors application health.",
+        "iconName": "Workflow",
+        "techStack": [
+          "Argo CD",
+          "Kubernetes",
+          "GitOps",
+          "Helm",
+          "Kustomize"
+        ],
+        "specs": {
+          "qps": "GitOps Sync / min",
+          "p99Latency": "< 2s Reconciliation",
+          "replicas": "HA Cluster",
+          "sla": "99.95%",
+          "failoverStrategy": "Multi-replica Controller",
+          "stateful": false,
+          "resourceAllocation": "Cluster Control Plane"
+        },
+        "responsibilities": [
+          "Continuous Git-to-cluster reconciliation",
+          "Automated drift detection and self-healing",
+          "Multi-cluster deployment management",
+          "Role-based access control (RBAC) and audit logging"
+        ],
+        "failureModes": [
+          "Webhook connection timeout to Git provider",
+          "Cluster API rate-limiting during mass syncs",
+          "Invalid manifest syntax blocking synchronization"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: argoproj.io/v1alpha1\nkind: Application\nmetadata:\n  name: production-services\n  namespace: argocd\nspec:\n  project: default\n  source:\n    repoURL: https://github.com/utkarsh/infra-manifests.git\n    targetRevision: HEAD\n    path: k8s/production\n  destination:\n    server: https://kubernetes.default.svc\n    namespace: prod\n  syncPolicy:\n    automated:\n      prune: true\n      selfHeal: true"
+        }
+      }
+    },
+    {
+      "id": "node-kubernetes",
+      "type": "architectureNode",
+      "position": {
+        "x": 500,
+        "y": 180
+      },
+      "data": {
+        "id": "node-kubernetes",
+        "label": "Kubernetes",
+        "subtitle": "k8s.devutkarsh.com",
+        "url": "https://k8s.devutkarsh.com",
+        "category": "compute",
+        "description": "Kubernetes cluster management, node orchestration, pod scheduling, and declarative deployment engine running at k8s.devutkarsh.com. Automatically manages cluster state with version-controlled manifests and monitors application health.",
+        "iconName": "Workflow",
+        "techStack": [
+          "Kubernetes",
+          "Docker",
+          "Helm",
+          "Kustomize"
+        ],
+        "specs": {
+          "qps": "Kubernetes Ops / min",
+          "p99Latency": "< 2s Reconciliation",
+          "replicas": "HA Cluster",
+          "sla": "99.95%",
+          "failoverStrategy": "Multi-replica Controller",
+          "stateful": false,
+          "resourceAllocation": "Cluster Control Plane"
+        },
+        "responsibilities": [
+          "Continuous Git-to-cluster reconciliation",
+          "Automated drift detection and self-healing",
+          "Multi-cluster deployment management",
+          "Role-based access control (RBAC) and audit logging"
+        ],
+        "failureModes": [
+          "Webhook connection timeout to Git provider",
+          "Cluster API rate-limiting during mass syncs",
+          "Invalid manifest syntax blocking synchronization"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: argoproj.io/v1alpha1\nkind: Application\nmetadata:\n  name: production-services\n  namespace: argocd\nspec:\n  project: default\n  source:\n    repoURL: https://github.com/utkarsh/infra-manifests.git\n    targetRevision: HEAD\n    path: k8s/production\n  destination:\n    server: https://kubernetes.default.svc\n    namespace: prod\n  syncPolicy:\n    automated:\n      prune: true\n      selfHeal: true"
+        }
+      }
+    },
+    {
+      "id": "node-github",
+      "type": "architectureNode",
+      "position": {
+        "x": 840,
+        "y": 180
+      },
+      "data": {
+        "id": "node-github",
+        "label": "GitHub",
+        "subtitle": "github.com",
+        "url": "https://github.com",
+        "category": "storage",
+        "description": "Enterprise version control, CI/CD automation, pull request reviews, and security scanning platform hosted at github.com. Acts as the primary Git source of truth for application code and infrastructure manifests.",
+        "iconName": "Globe",
+        "techStack": [
+          "Git",
+          "GitHub Actions",
+          "Dependabot",
+          "CodeQL",
+          "REST / GraphQL"
+        ],
+        "specs": {
+          "qps": "Global Anycast Webhooks",
+          "p99Latency": "< 100ms API",
+          "replicas": "Global Cloud",
+          "sla": "99.99%",
+          "failoverStrategy": "Distributed Datacenter Replication",
+          "stateful": true,
+          "resourceAllocation": "Cloud Hosted"
+        },
+        "responsibilities": [
+          "Immutable Git version history and branch protection",
+          "Automated CI testing via GitHub Actions runners",
+          "Pull request code reviews and automated merge queues",
+          "Secret detection and vulnerability scanning"
+        ],
+        "failureModes": [
+          "GitHub API rate-limiting on token exhaustion",
+          "Runner queue backlog during peak commit windows",
+          "Upstream third-party Action dependency outage"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "name: CI/CD Pipeline\non:\n  push:\n    branches: [ main ]\n  pull_request:\n    branches: [ main ]\njobs:\n  build-and-test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Setup Node.js\n        uses: actions/setup-node@v4\n        with:\n          node-version: 20\n      - run: npm ci\n      - run: npm run build\n      - run: npm test"
+        }
+      }
+    }
+  ],
+  "edges": [],
+  "simulationFlow": [],
+  "tradeoffs": [
+    {
+      "decision": "GitOps Synchronization Architecture",
+      "chosenApproach": "Pull-based reconciliation via Argo CD controller",
+      "pros": [
+        "Zero cluster credentials exposed to external CI runners",
+        "Continuous automated drift detection and self-healing",
+        "Declarative rollback to previous Git commits"
+      ],
+      "cons": [
+        "Requires hosting in-cluster agent controller",
+        "Small sync delay between Git commit and cluster apply"
+      ],
+      "rejectedAlternatives": [
+        "Push-based CI pipelines running kubectl directly with cluster admin tokens"
+      ]
+    },
+    {
+      "decision": "Source Code & Manifest Repository Hosting",
+      "chosenApproach": "GitHub Cloud with Branch Protection & Actions",
+      "pros": [
+        "Industry-standard developer ergonomics and ecosystem integrations",
+        "Built-in secret scanning, Dependabot, and automated workflows",
+        "High availability global infrastructure"
+      ],
+      "cons": [
+        "Dependent on external SaaS availability",
+        "Action runner concurrency limits on standard tiers"
+      ],
+      "rejectedAlternatives": [
+        "Self-hosted GitLab/Gitea instances with manual maintenance and backup overhead"
+      ]
+    }
+  ],
+  "securityAndCompliance": [
+    {
+      "area": "Authentication & SSO",
+      "standard": "OIDC / OAuth 2.0 with MFA",
+      "implementation": "Enforce short-lived OIDC tokens and multi-factor authentication across GitHub and Argo CD UI."
+    },
+    {
+      "area": "Secrets Management",
+      "standard": "Zero Plaintext in Git",
+      "implementation": "All sensitive secrets encrypted using Sealed Secrets or external Vault integration before committing to repositories."
+    },
+    {
+      "area": "Audit Logging",
+      "standard": "SOC 2 Type II / ISO 27001",
+      "implementation": "All pull request approvals, merge operations, and GitOps sync events recorded in immutable audit logs."
+    }
+  ],
+  "keyMetrics": {
+    "availabilitySLA": "99.95%",
+    "readLatencyP99": "< 50ms",
+    "writeLatencyP99": "< 200ms",
+    "resilienceTier": "Tier-1 Mission Critical",
+    "costOptimizationTier": "Optimized GitOps & SaaS"
+  }
+}

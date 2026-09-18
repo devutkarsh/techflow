@@ -1,0 +1,439 @@
+{
+  "id": "arch-zero-trust-ebpf",
+  "slug": "zero-trust-mesh",
+  "title": "Zero-Trust Service Mesh & eBPF Security Architecture",
+  "enabled": false,
+  "subtitle": "Cryptographic workload identity (SPIFFE/SPIRE), Cilium eBPF kernel microsegmentation, OPA policy enforcement, and dynamic secrets vault.",
+  "category": "Security & Zero Trust",
+  "version": "v2.2.0",
+  "author": {
+    "name": "David Thorne",
+    "role": "Chief Security & Systems Architect",
+    "avatar": "DT"
+  },
+  "lastUpdated": "2026-09-17",
+  "readingTime": "7 min read",
+  "tags": [
+    "SPIFFE",
+    "SPIRE",
+    "eBPF",
+    "Cilium",
+    "OPA",
+    "Vault",
+    "Istio",
+    "Zero Trust"
+  ],
+  "overview": {
+    "summary": "An enterprise defense-in-depth zero-trust architecture replacing perimeter firewalls with workload-level cryptographic identity, continuous kernel-level network enforcement via eBPF, and fine-grained authorization policies.",
+    "problemStatement": "Traditional network perimeter firewalls leave internal East-West traffic vulnerable to lateral movement once an attacker breaches the perimeter boundary.",
+    "corePrinciples": [
+      "Never trust, always verify: every single RPC requires continuous cryptographic proof of identity",
+      "eBPF kernel-level filtering bypassing Linux TCP/IP stack overhead for line-rate security inspection",
+      "Short-lived X.509 SVID credentials rotated automatically every 60 minutes",
+      "Declarative Open Policy Agent (OPA) gatekeeping every mutating API action"
+    ],
+    "targetScale": {
+      "dailyActiveUsers": "Global enterprise infrastructure",
+      "throughput": "1.8 Million internal mTLS RPCs / sec",
+      "storageVolume": "Continuous tamper-proof audit trail",
+      "globalLatencyP99": "< 0.4 ms eBPF security filter overhead"
+    }
+  },
+  "keyMetrics": {
+    "availabilitySLA": "99.999%",
+    "readLatencyP99": "0.3 ms (eBPF packet filter)",
+    "writeLatencyP99": "1.2 ms (OPA Policy Evaluation)",
+    "resilienceTier": "Kernel Enforced Zero-Trust",
+    "costOptimizationTier": "Tier 1 (eBPF Host Acceleration)"
+  },
+  "nodes": [
+    {
+      "id": "spire-server",
+      "type": "architectureNode",
+      "position": {
+        "x": 40,
+        "y": 200
+      },
+      "data": {
+        "id": "spire-server",
+        "label": "SPIFFE / SPIRE Server",
+        "subtitle": "Workload Identity Authority",
+        "category": "security",
+        "description": "Attests node hardware and pod runtime tokens, issuing short-lived X.509 SVID identity documents without static credentials.",
+        "iconName": "Key",
+        "techStack": [
+          "SPIFFE / SPIRE 1.10",
+          "Hardware TPM 2.0",
+          "K8s Token Reviewer"
+        ],
+        "specs": {
+          "qps": "50K SVID issuances/min",
+          "p99Latency": "1.8 ms attestation",
+          "replicas": "3 Clustered Nodes",
+          "sla": "99.999%",
+          "failoverStrategy": "Raft quorum with local agent disk caching"
+        }
+      }
+    },
+    {
+      "id": "ebpf-cilium",
+      "type": "architectureNode",
+      "position": {
+        "x": 320,
+        "y": 200
+      },
+      "data": {
+        "id": "ebpf-cilium",
+        "label": "Cilium eBPF CNI",
+        "subtitle": "Kernel-Level Microsegmentation",
+        "category": "security",
+        "description": "Runs sandboxed eBPF bytecode inside Linux kernel sockets to enforce L3/L4/L7 policies and accelerate container networking.",
+        "iconName": "Shield",
+        "techStack": [
+          "Cilium 1.16",
+          "eBPF Sockets",
+          "Linux Kernel 6.8",
+          "XDP"
+        ],
+        "specs": {
+          "qps": "2M packets/sec per node",
+          "p99Latency": "0.15 ms overhead",
+          "replicas": "DaemonSet on all K8s nodes",
+          "sla": "99.999%",
+          "failoverStrategy": "Kernel resident bypass fallback"
+        }
+      }
+    },
+    {
+      "id": "service-mesh",
+      "type": "architectureNode",
+      "position": {
+        "x": 600,
+        "y": 90
+      },
+      "data": {
+        "id": "service-mesh",
+        "label": "Istio Ambient Mesh",
+        "subtitle": "Sidecarless mTLS Layer",
+        "category": "gateway",
+        "description": "Lightweight node-level ztunnel proxy terminating mutual TLS and enforcing identity without bloated per-pod sidecars.",
+        "iconName": "Shuffle",
+        "techStack": [
+          "Istio Ambient 1.22",
+          "Rust ztunnel",
+          "Envoy Waypoint"
+        ],
+        "specs": {
+          "qps": "300K RPCs/s",
+          "p99Latency": "0.4 ms",
+          "replicas": "Node ztunnel daemons",
+          "sla": "99.999%"
+        }
+      }
+    },
+    {
+      "id": "opa-gatekeeper",
+      "type": "architectureNode",
+      "position": {
+        "x": 600,
+        "y": 320
+      },
+      "data": {
+        "id": "opa-gatekeeper",
+        "label": "OPA & Styra Policy Engine",
+        "subtitle": "Fine-Grained Rego Authorization",
+        "category": "security",
+        "description": "Evaluates declarative Rego policies (RBAC/ABAC) over streaming JSON context for zero-latency authorization checks.",
+        "iconName": "ShieldCheck",
+        "techStack": [
+          "Open Policy Agent",
+          "Rego Engine",
+          "WASM Runtime"
+        ],
+        "specs": {
+          "qps": "150K evals/sec",
+          "p99Latency": "0.35 ms",
+          "replicas": "In-process WASM + Sidecar",
+          "sla": "99.999%"
+        }
+      }
+    },
+    {
+      "id": "vault-secrets",
+      "type": "architectureNode",
+      "position": {
+        "x": 880,
+        "y": 200
+      },
+      "data": {
+        "id": "vault-secrets",
+        "label": "HashiCorp Vault Cluster",
+        "subtitle": "Dynamic Ephemeral Secrets & KMS",
+        "category": "security",
+        "description": "Issues dynamic database credentials with 15-minute TTLs and performs envelope encryption with hardware HSM backends.",
+        "iconName": "Lock",
+        "techStack": [
+          "HashiCorp Vault 1.17",
+          "Raft Storage",
+          "Cloud KMS"
+        ],
+        "specs": {
+          "qps": "40K secret operations/s",
+          "p99Latency": "1.2 ms",
+          "replicas": "5 Raft Nodes",
+          "sla": "99.999%",
+          "failoverStrategy": "Automated Raft leader election in < 1s"
+        }
+      }
+    },
+    {
+      "id": "siem-audit",
+      "type": "architectureNode",
+      "position": {
+        "x": 1160,
+        "y": 200
+      },
+      "data": {
+        "id": "siem-audit",
+        "label": "SIEM & Tetragon Runtime Audit",
+        "subtitle": "eBPF Real-time Threat Detection",
+        "category": "monitoring",
+        "description": "Tetragon kernel sensor intercepting process execution, namespace escapes, and unauthorized socket connects in real time.",
+        "iconName": "Activity",
+        "techStack": [
+          "Cilium Tetragon",
+          "eBPF Kernel Probes",
+          "Wazuh",
+          "Splunk"
+        ],
+        "specs": {
+          "qps": "800K kernel events/sec",
+          "p99Latency": "Real-time stream",
+          "replicas": "All nodes",
+          "sla": "99.99%"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-spire-cilium",
+      "source": "spire-server",
+      "target": "ebpf-cilium",
+      "label": "SVID Identity Push",
+      "animated": true,
+      "data": {
+        "id": "e-spire-cilium",
+        "protocol": "eBPF / Mesh",
+        "latency": "1.2 ms",
+        "payloadType": "spiffe://prod/ns/payments/sa/ledger-svc",
+        "description": "Synchronizes identity mapping to eBPF kernel maps."
+      }
+    },
+    {
+      "id": "e-cilium-mesh",
+      "source": "ebpf-cilium",
+      "target": "service-mesh",
+      "label": "Encrypted ztunnel mTLS",
+      "animated": true,
+      "data": {
+        "id": "e-cilium-mesh",
+        "protocol": "TCP / TLS",
+        "latency": "0.3 ms",
+        "payloadType": "Encrypted East-West Payload",
+        "description": "Mutual TLS handshake with short-lived X.509 certs."
+      }
+    },
+    {
+      "id": "e-mesh-opa",
+      "source": "service-mesh",
+      "target": "opa-gatekeeper",
+      "label": "Policy Authorization Check",
+      "animated": true,
+      "data": {
+        "id": "e-mesh-opa",
+        "protocol": "gRPC",
+        "latency": "0.4 ms",
+        "payloadType": "CheckPolicy(Principal, Action, Resource)",
+        "description": "Rego rules evaluate permissions in sub-millisecond."
+      }
+    },
+    {
+      "id": "e-mesh-vault",
+      "source": "service-mesh",
+      "target": "vault-secrets",
+      "label": "Dynamic Secret Lease",
+      "animated": true,
+      "data": {
+        "id": "e-mesh-vault",
+        "protocol": "REST / HTTPS",
+        "latency": "1.2 ms",
+        "payloadType": "POST /v1/database/creds/readonly",
+        "description": "Obtains short-lived 15-min database password."
+      }
+    },
+    {
+      "id": "e-cilium-siem",
+      "source": "ebpf-cilium",
+      "target": "siem-audit",
+      "label": "Kernel Exec & Socket Probes",
+      "animated": true,
+      "data": {
+        "id": "e-cilium-siem",
+        "protocol": "eBPF / Mesh",
+        "latency": "0.1 ms",
+        "payloadType": "TetragonProcessExecEvent",
+        "description": "Continuous telemetry streaming to SIEM for security analytics."
+      }
+    }
+  ],
+  "simulationFlow": [
+    {
+      "step": 1,
+      "title": "SPIRE Server Issues Cryptographic Workload SVID",
+      "description": "Payment service pod boots. SPIRE Agent verifies K8s service account token and TPM endorsement, issuing a 1-hour X.509 SVID.",
+      "activeNodeIds": [
+        "spire-server",
+        "ebpf-cilium"
+      ],
+      "activeEdgeIds": [
+        "e-spire-cilium"
+      ],
+      "payload": {
+        "action": "Issue SVID Certificate",
+        "protocol": "SPIRE Attestation",
+        "sample": {
+          "spiffe_id": "spiffe://prod/ns/payments/sa/payment-service",
+          "valid_until": "2026-09-18T00:50:00Z",
+          "cipher": "ECDSA-P256-SHA256"
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "1.8 ms attestation"
+    },
+    {
+      "step": 2,
+      "title": "Cilium eBPF Inspects Socket at Kernel Level",
+      "description": "Service initiates outbound gRPC connection. eBPF socket filter verifies source identity and validates destination network security policy.",
+      "activeNodeIds": [
+        "ebpf-cilium",
+        "service-mesh"
+      ],
+      "activeEdgeIds": [
+        "e-cilium-mesh"
+      ],
+      "payload": {
+        "action": "eBPF Socket Filter: ALLOW",
+        "protocol": "eBPF Kernel Hook",
+        "sample": {
+          "src_identity": 10429,
+          "dst_identity": 10850,
+          "port": 9000,
+          "action": "FORWARD_TO_ZTUNNEL"
+        }
+      },
+      "durationMs": 1600,
+      "latencyExpectation": "0.15 ms kernel verification"
+    },
+    {
+      "step": 3,
+      "title": "OPA Evaluates Fine-Grained ABAC Policy",
+      "description": "Open Policy Agent compiles request parameters against Rego policy rules, ensuring calling service is authorized for requested ledger balance mutation.",
+      "activeNodeIds": [
+        "service-mesh",
+        "opa-gatekeeper"
+      ],
+      "activeEdgeIds": [
+        "e-mesh-opa"
+      ],
+      "payload": {
+        "action": "OPA Policy: EVALUATION_PERMITTED",
+        "protocol": "gRPC / WASM",
+        "sample": {
+          "rule": "allow_transfer_mutation",
+          "result": true,
+          "reason": "Principal matches role payment-admin"
+        }
+      },
+      "durationMs": 1600,
+      "latencyExpectation": "0.35 ms policy execution"
+    },
+    {
+      "step": 4,
+      "title": "Vault Issues Dynamic 15-Minute Ephemeral DB Credential",
+      "description": "Vault dynamically spins up an ephemeral database username and password in PostgreSQL that self-destructs after 15 minutes.",
+      "activeNodeIds": [
+        "service-mesh",
+        "vault-secrets"
+      ],
+      "activeEdgeIds": [
+        "e-mesh-vault"
+      ],
+      "payload": {
+        "action": "Generate Ephemeral DB Lease",
+        "protocol": "HTTPS (TLS 1.3)",
+        "sample": {
+          "username": "v-token-pay-891",
+          "lease_duration": "900s",
+          "renewable": false
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "1.2 ms dynamic secret"
+    },
+    {
+      "step": 5,
+      "title": "Tetragon Kernel Sensor Logs Auditable Execution Trace",
+      "description": "eBPF Tetragon probe logs process and network socket telemetry to SIEM for real-time compliance auditing and zero-day intrusion defense.",
+      "activeNodeIds": [
+        "ebpf-cilium",
+        "siem-audit"
+      ],
+      "activeEdgeIds": [
+        "e-cilium-siem"
+      ],
+      "payload": {
+        "action": "Audit Event Committed",
+        "protocol": "eBPF / Kafka",
+        "sample": {
+          "sensor": "tetragon-ebpf",
+          "event": "PROCESS_EXEC",
+          "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "VERIFIED_COMPLIANT"
+        }
+      },
+      "durationMs": 1800,
+      "latencyExpectation": "0.1 ms real-time telemetry"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "decision": "Ambient Mesh (ztunnel) vs Per-Pod Sidecar Proxies",
+      "chosenApproach": "Istio Ambient Mode Sidecarless Architecture",
+      "pros": [
+        "Saves over 60% memory and CPU overhead compared to injecting Envoy in every pod",
+        "Zero pod restarts required during mesh security upgrades",
+        "Sub-millisecond L4 mTLS encryption speeds"
+      ],
+      "cons": [
+        "Requires node-level privileges for daemonset",
+        "Relies on recent Linux kernels (>= 5.15)"
+      ],
+      "rejectedAlternatives": [
+        "Traditional Istio Sidecar Injection into every container"
+      ]
+    }
+  ],
+  "securityAndCompliance": [
+    {
+      "area": "Zero Lateral Movement",
+      "standard": "NIST SP 800-207 Zero Trust Architecture",
+      "implementation": "Default-deny eBPF microsegmentation isolating pods even within the exact same Kubernetes namespace."
+    },
+    {
+      "area": "Secret Elimination",
+      "standard": "FedRAMP High & FIPS 140-3",
+      "implementation": "100% ephemeral short-lived credentials with zero hardcoded API keys or static database passwords in git."
+    }
+  ]
+}
