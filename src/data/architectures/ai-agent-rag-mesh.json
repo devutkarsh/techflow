@@ -2,7 +2,7 @@
   "id": "arch-ai-agent-rag",
   "slug": "ai-agent-rag-mesh",
   "title": "Enterprise Multi-Agent LLM RAG & Vector Memory Mesh",
-  "enabled": true,
+  "enabled": false,
   "subtitle": "Distributed semantic search, hybrid sparse-dense retrieval, agentic tool orchestration, and LLM guardrails at enterprise scale.",
   "category": "AI & LLM Orchestration",
   "version": "v3.1.2",
