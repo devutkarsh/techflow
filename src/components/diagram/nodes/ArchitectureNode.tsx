@@ -93,7 +93,6 @@ export const ArchitectureNodeComponent: React.FC<NodeProps> = memo(({ data, sele
       {/* Body */}
       <div className="node-body">
         <div className="node-title">{nodeData.label}</div>
-        {nodeData.subtitle && <div className="node-subtitle">{nodeData.subtitle}</div>}
 
         {/* Clickable External URL Link */}
         {nodeData.url && (
@@ -108,38 +107,6 @@ export const ArchitectureNodeComponent: React.FC<NodeProps> = memo(({ data, sele
             <ExternalLink size={11} />
             <span>{nodeData.url.replace(/^https?:\/\//, '')}</span>
           </a>
-        )}
-
-        {/* Tech Stack Tags */}
-        {nodeData.techStack && nodeData.techStack.length > 0 && (
-          <div className="node-tech-tags">
-            {nodeData.techStack.slice(0, 3).map((tech, idx) => (
-              <span key={idx} className="tech-tag">
-                {tech}
-              </span>
-            ))}
-            {nodeData.techStack.length > 3 && (
-              <span className="tech-tag">+{nodeData.techStack.length - 3}</span>
-            )}
-          </div>
-        )}
-
-        {/* Specs Grid */}
-        {nodeData.specs && (
-          <div className="node-specs-grid">
-            {nodeData.specs.qps && (
-              <div className="node-spec-item">
-                <span className="node-spec-label">Throughput</span>
-                <span className="node-spec-value">{nodeData.specs.qps}</span>
-              </div>
-            )}
-            {nodeData.specs.p99Latency && (
-              <div className="node-spec-item">
-                <span className="node-spec-label">P99 SLA</span>
-                <span className="node-spec-value">{nodeData.specs.p99Latency}</span>
-              </div>
-            )}
-          </div>
         )}
       </div>
     </div>
