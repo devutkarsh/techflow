@@ -10,7 +10,7 @@
   "lastUpdated": "2026-09-19",
   "author": {
     "name": "Utkarsh",
-    "role": "Lead AI & Cloud Platform Architect",
+    "role": "Lead AI Platform & Kubernetes Architect",
     "avatar": "UD"
   },
   "readingTime": "7 min read",
@@ -62,11 +62,11 @@
       "id": "node-k8s-cluster",
       "type": "containerNode",
       "position": {
-        "x": 380,
+        "x": 260,
         "y": 40
       },
-      "width": 1780,
-      "height": 1040,
+      "width": 1140,
+      "height": 580,
       "childNodes": [
         "node-cloudflared",
         "node-langfuse",
@@ -138,7 +138,7 @@
       "type": "architectureNode",
       "position": {
         "x": 40,
-        "y": 170
+        "y": 120
       },
       "data": {
         "id": "node-cloudflare-portal",
@@ -185,7 +185,7 @@
       "type": "architectureNode",
       "position": {
         "x": 40,
-        "y": 720
+        "y": 380
       },
       "data": {
         "id": "node-user-client",
@@ -230,8 +230,8 @@
       "id": "node-github",
       "type": "architectureNode",
       "position": {
-        "x": 2240,
-        "y": 170
+        "x": 1440,
+        "y": 120
       },
       "data": {
         "id": "node-github",
@@ -275,8 +275,8 @@
       "id": "node-local-pc",
       "type": "architectureNode",
       "position": {
-        "x": 2240,
-        "y": 530
+        "x": 1440,
+        "y": 380
       },
       "data": {
         "id": "node-local-pc",
@@ -321,8 +321,8 @@
       "type": "architectureNode",
       "parentId": "node-k8s-cluster",
       "position": {
-        "x": 100,
-        "y": 150
+        "x": 40,
+        "y": 80
       },
       "data": {
         "id": "node-cloudflared",
@@ -368,8 +368,8 @@
       "type": "architectureNode",
       "parentId": "node-k8s-cluster",
       "position": {
-        "x": 430,
-        "y": 150
+        "x": 260,
+        "y": 80
       },
       "data": {
         "id": "node-langfuse",
@@ -416,8 +416,8 @@
       "type": "architectureNode",
       "parentId": "node-k8s-cluster",
       "position": {
-        "x": 760,
-        "y": 150
+        "x": 480,
+        "y": 80
       },
       "data": {
         "id": "node-headlamp",
@@ -464,8 +464,8 @@
       "type": "architectureNode",
       "parentId": "node-k8s-cluster",
       "position": {
-        "x": 1090,
-        "y": 150
+        "x": 700,
+        "y": 80
       },
       "data": {
         "id": "node-postgres-db",
@@ -509,8 +509,8 @@
       "type": "architectureNode",
       "parentId": "node-k8s-cluster",
       "position": {
-        "x": 1420,
-        "y": 150
+        "x": 920,
+        "y": 80
       },
       "data": {
         "id": "node-argocd",
@@ -553,60 +553,12 @@
       }
     },
     {
-      "id": "node-netdata",
-      "type": "architectureNode",
-      "parentId": "node-k8s-cluster",
-      "position": {
-        "x": 1420,
-        "y": 440
-      },
-      "data": {
-        "id": "node-netdata",
-        "label": "Netdata Telemetry",
-        "subtitle": "netdata.devutkarsh.com",
-        "url": "https://netdata.devutkarsh.com/",
-        "category": "monitoring",
-        "description": "Child Kubernetes DaemonSet running across all cluster nodes in namespace 'monitoring'. Deployed by Argo CD and accessed via Traefik Ingress. Monitor GPU VRAM, CPU load, and network I/O in real time (Click 'Skip' / 'Explore without sign in' to view dashboard).",
-        "iconName": "Radio",
-        "techStack": [
-          "Netdata Agent",
-          "eBPF",
-          "cgroups v2",
-          "Prometheus Exporter",
-          "K8s DaemonSet"
-        ],
-        "specs": {
-          "qps": "Per-Second Telemetry Resolution",
-          "p99Latency": "< 5ms Dashboard Update",
-          "replicas": "DaemonSet per K8s Node",
-          "sla": "99.99%",
-          "failoverStrategy": "Distributed local buffer",
-          "stateful": false,
-          "resourceAllocation": "0.2 vCPU / 256MB RAM per node"
-        },
-        "responsibilities": [
-          "Collects high-frequency 1-second interval hardware telemetry across cluster nodes",
-          "Monitors GPU temperature, VRAM allocation, and CUDA compute saturation",
-          "Tracks Kubernetes pod memory limits and CPU throttling",
-          "Exposes interactive real-time dashboard through Traefik at netdata.devutkarsh.com"
-        ],
-        "failureModes": [
-          "eBPF sensor permission constraints on restricted kernel nodes",
-          "Browser rendering lag when streaming 1,000+ real-time metric charts simultaneously"
-        ],
-        "configSnippet": {
-          "language": "yaml",
-          "code": "apiVersion: argoproj.io/v1alpha1\nkind: HelmRelease\nmetadata:\n  name: netdata\n  namespace: monitoring\nspec:\n  chart:\n    spec:\n      chart: netdata\n      version: 3.7.x\n  values:\n    k8sState:\n      enabled: true\n    parent:\n      database:\n        persistence: true"
-        }
-      }
-    },
-    {
       "id": "node-traefik",
       "type": "architectureNode",
       "parentId": "node-k8s-cluster",
       "position": {
-        "x": 100,
-        "y": 720
+        "x": 40,
+        "y": 340
       },
       "data": {
         "id": "node-traefik",
@@ -653,8 +605,8 @@
       "type": "architectureNode",
       "parentId": "node-k8s-cluster",
       "position": {
-        "x": 430,
-        "y": 720
+        "x": 260,
+        "y": 340
       },
       "data": {
         "id": "node-nextchat",
@@ -701,8 +653,8 @@
       "type": "architectureNode",
       "parentId": "node-k8s-cluster",
       "position": {
-        "x": 760,
-        "y": 720
+        "x": 480,
+        "y": 340
       },
       "data": {
         "id": "node-litellm",
@@ -749,8 +701,8 @@
       "type": "architectureNode",
       "parentId": "node-k8s-cluster",
       "position": {
-        "x": 1090,
-        "y": 720
+        "x": 700,
+        "y": 340
       },
       "data": {
         "id": "node-qwen",
@@ -788,6 +740,54 @@
         "configSnippet": {
           "language": "yaml",
           "code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: qwen-inference\n  namespace: llm-platform\nspec:\n  replicas: 1\n  template:\n    spec:\n      containers:\n      - name: model-server\n        image: vllm/vllm-openai:latest\n        args:\n        - \"--model\"\n        - \"Qwen/Qwen2.5-3B-Instruct\"\n        - \"--port\"\n        - \"8000\"\n        - \"--max-model-len\"\n        - \"8192\"\n        resources:\n          limits:\n            nvidia.com/gpu: 1\n            memory: 16Gi"
+        }
+      }
+    },
+    {
+      "id": "node-netdata",
+      "type": "architectureNode",
+      "parentId": "node-k8s-cluster",
+      "position": {
+        "x": 920,
+        "y": 340
+      },
+      "data": {
+        "id": "node-netdata",
+        "label": "Netdata Telemetry",
+        "subtitle": "netdata.devutkarsh.com",
+        "url": "https://netdata.devutkarsh.com/",
+        "category": "monitoring",
+        "description": "Child Kubernetes DaemonSet running across all cluster nodes in namespace 'monitoring'. Deployed by Argo CD and accessed via Traefik Ingress. Monitor GPU VRAM, CPU load, and network I/O in real time (Click 'Skip' / 'Explore without sign in' to view dashboard).",
+        "iconName": "Radio",
+        "techStack": [
+          "Netdata Agent",
+          "eBPF",
+          "cgroups v2",
+          "Prometheus Exporter",
+          "K8s DaemonSet"
+        ],
+        "specs": {
+          "qps": "Per-Second Telemetry Resolution",
+          "p99Latency": "< 5ms Dashboard Update",
+          "replicas": "DaemonSet per K8s Node",
+          "sla": "99.99%",
+          "failoverStrategy": "Distributed local buffer",
+          "stateful": false,
+          "resourceAllocation": "0.2 vCPU / 256MB RAM per node"
+        },
+        "responsibilities": [
+          "Collects high-frequency 1-second interval hardware telemetry across cluster nodes",
+          "Monitors GPU temperature, VRAM allocation, and CUDA compute saturation",
+          "Tracks Kubernetes pod memory limits and CPU throttling",
+          "Exposes interactive real-time dashboard through Traefik at netdata.devutkarsh.com"
+        ],
+        "failureModes": [
+          "eBPF sensor permission constraints on restricted kernel nodes",
+          "Browser rendering lag when streaming 1,000+ real-time metric charts simultaneously"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: argoproj.io/v1alpha1\nkind: HelmRelease\nmetadata:\n  name: netdata\n  namespace: monitoring\nspec:\n  chart:\n    spec:\n      chart: netdata\n      version: 3.7.x\n  values:\n    k8sState:\n      enabled: true\n    parent:\n      database:\n        persistence: true"
         }
       }
     }

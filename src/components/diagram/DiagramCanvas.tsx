@@ -62,9 +62,38 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
   const regularNodes = nodes.filter(
     (n) => n.type !== 'containerNode' && !(n.data as unknown as ArchitectureNodeData)?.isContainer
   );
-  const containerIds = new Set(containerNodes.map((c) => c.id));
 
-  // Build parent-to-child and child-to-parent mapping
+  if (containerNodes.length === 0) {
+    // Standard Dagre layout for flat architectures
+    regularNodes.forEach((node) => {
+      dagreGraph.setNode(node.id, { width: 190, height: 160 });
+    });
+
+    edges.forEach((edge) => {
+      dagreGraph.setEdge(edge.source, edge.target);
+    });
+
+    dagre.layout(dagreGraph);
+
+    const layoutedNodes = regularNodes.map((node) => {
+      const nodeWithPosition = dagreGraph.node(node.id);
+      return {
+        ...node,
+        width: 190,
+        height: 160,
+        initialWidth: 190,
+        initialHeight: 160,
+        position: {
+          x: (nodeWithPosition?.x ?? 110) - 95,
+          y: (nodeWithPosition?.y ?? 80) - 80,
+        },
+      };
+    });
+
+    return { nodes: layoutedNodes, edges };
+  }
+
+  // Build parent-to-child and child-to-parent mapping for containerized architectures
   const childToParentMap = new Map<string, string>();
   containerNodes.forEach((container) => {
     const containerData = container.data as unknown as ArchitectureNodeData;
@@ -75,7 +104,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
 
     if (childIds.length === 0) {
       childIds = nodes
-        .filter((n) => (n.data as unknown as { parentId?: string })?.parentId === container.id || (n as unknown as { parentId?: string })?.parentId === container.id)
+        .filter((n) => n.parentId === container.id || (n.data as unknown as { parentId?: string })?.parentId === container.id)
         .map((n) => n.id);
     }
 
@@ -84,152 +113,111 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
     });
   });
 
-  // 1. Add all regular nodes to dagre
-  regularNodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: 220, height: 160 });
+  const externalNodes = regularNodes.filter((n) => !childToParentMap.has(n.id));
+  const childNodes = regularNodes.filter((n) => childToParentMap.has(n.id));
+
+  // Add container and external nodes to macro Dagre graph
+  containerNodes.forEach((container) => {
+    const cWidth = typeof container.width === 'number' ? container.width : 1140;
+    const cHeight = typeof container.height === 'number' ? container.height : 580;
+    dagreGraph.setNode(container.id, { width: cWidth, height: cHeight });
   });
 
-  // 2. Add edges between regular nodes to dagre (skip edges attached to container itself)
+  externalNodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: 190, height: 160 });
+  });
+
+  // Map edges to macro graph: redirect child endpoints to their container node
+  const macroEdgeSet = new Set<string>();
   edges.forEach((edge) => {
-    if (!containerIds.has(edge.source) && !containerIds.has(edge.target)) {
-      dagreGraph.setEdge(edge.source, edge.target);
+    const src = childToParentMap.get(edge.source) || edge.source;
+    const tgt = childToParentMap.get(edge.target) || edge.target;
+    if (src !== tgt) {
+      const key = `${src}->${tgt}`;
+      if (!macroEdgeSet.has(key)) {
+        macroEdgeSet.add(key);
+        dagreGraph.setEdge(src, tgt);
+      }
     }
   });
 
   dagre.layout(dagreGraph);
 
-  // 3. Compute global positions for regular nodes from dagre output
-  const globalPositionMap = new Map<string, { x: number; y: number }>();
-  regularNodes.forEach((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    if (nodeWithPosition) {
-      globalPositionMap.set(node.id, {
-        x: nodeWithPosition.x - 110,
-        y: nodeWithPosition.y - 80,
-      });
-    }
-  });
+  // Position containers with bounded dimensions
+  const positionedContainers = containerNodes.map((container) => {
+    const nodePos = dagreGraph.node(container.id);
+    const cWidth = typeof container.width === 'number' ? container.width : 1140;
+    const cHeight = typeof container.height === 'number' ? container.height : 580;
+    const containerX = nodePos ? nodePos.x - cWidth / 2 : 260;
+    const containerY = nodePos ? nodePos.y - cHeight / 2 : 40;
 
-  // 4. Calculate bounding boxes and positions for container nodes
-  const containerPositionsMap = new Map<string, { x: number; y: number; width: number; height: number; childIds: string[] }>();
-
-  const positionedContainerNodes = containerNodes.map((container) => {
-    const containerData = container.data as unknown as ArchitectureNodeData;
-    let childIds: string[] = 
-      (container as unknown as { childNodes?: string[] }).childNodes ||
-      containerData?.childNodes ||
-      [];
-
-    if (childIds.length === 0) {
-      childIds = nodes
-        .filter((n) => (n.data as unknown as { parentId?: string })?.parentId === container.id || (n as unknown as { parentId?: string })?.parentId === container.id)
-        .map((n) => n.id);
-    }
-
-    // Find global positions of child nodes that belong to this container
-    const childPositions = childIds
-      .map((id) => globalPositionMap.get(id))
-      .filter((pos): pos is { x: number; y: number } => pos !== undefined);
-
-    if (childPositions.length > 0) {
-      const minX = Math.min(...childPositions.map((p) => p.x));
-      const maxX = Math.max(...childPositions.map((p) => p.x + 220));
-      const minY = Math.min(...childPositions.map((p) => p.y));
-      const maxY = Math.max(...childPositions.map((p) => p.y + 160));
-
-      const paddingLeft = 45;
-      const paddingRight = 45;
-      const paddingTop = 85; // Space for the container header bar
-      const paddingBottom = 45;
-
-      const width = (maxX - minX) + paddingLeft + paddingRight;
-      const height = (maxY - minY) + paddingTop + paddingBottom;
-
-      const containerX = minX - paddingLeft;
-      const containerY = minY - paddingTop;
-
-      containerPositionsMap.set(container.id, {
-        x: containerX,
-        y: containerY,
-        width,
-        height,
-        childIds,
-      });
-
-      return {
-        ...container,
-        position: {
-          x: containerX,
-          y: containerY,
-        },
-        style: {
-          ...container.style,
-          width,
-          height,
-          zIndex: -1,
-        },
-        data: {
-          ...containerData,
-          width,
-          height,
-          childNodes: childIds,
-        },
-      };
-    }
-
-    // Fallback if no child nodes found
     return {
       ...container,
+      width: cWidth,
+      height: cHeight,
+      initialWidth: cWidth,
+      initialHeight: cHeight,
+      position: {
+        x: containerX,
+        y: containerY,
+      },
       style: {
         ...container.style,
-        width: typeof container.style?.width === 'number' ? container.style.width : 920,
-        height: typeof container.style?.height === 'number' ? container.style.height : 620,
+        width: cWidth,
+        height: cHeight,
         zIndex: -1,
       },
     };
   });
 
-  // 5. Position regular nodes (relative to parent container if inside a container)
-  const positionedRegularNodes = regularNodes.map((node) => {
-    const globalPos = globalPositionMap.get(node.id) || { x: 0, y: 0 };
-    const parentId = childToParentMap.get(node.id);
-
-    if (parentId && containerPositionsMap.has(parentId)) {
-      const parentContainer = containerPositionsMap.get(parentId)!;
-      // Convert to relative coordinates inside the parent container
-      const relativeX = globalPos.x - parentContainer.x;
-      const relativeY = globalPos.y - parentContainer.y;
-
-      return {
-        ...node,
-        parentId,
-        width: 190,
-        height: 160,
-        initialWidth: 190,
-        initialHeight: 160,
-        position: {
-          x: relativeX,
-          y: relativeY,
-        },
-        data: {
-          ...node.data,
-          parentId,
-        },
-      };
-    }
-
+  // Position external nodes
+  const positionedExternalNodes = externalNodes.map((node) => {
+    const nodePos = dagreGraph.node(node.id);
     return {
       ...node,
+      width: 190,
+      height: 160,
+      initialWidth: 190,
+      initialHeight: 160,
+      parentId: undefined,
+      extent: undefined,
       position: {
-        x: globalPos.x,
-        y: globalPos.y,
+        x: nodePos ? nodePos.x - 95 : 40,
+        y: nodePos ? nodePos.y - 80 : 120,
       },
     };
   });
 
-  // Container nodes sorted first so they render underneath child nodes
+  // Position child nodes within their parent container in a clean 2-row grid with relative coordinates
+  const positionedChildNodes = childNodes.map((node, index) => {
+    const parentContainerId = childToParentMap.get(node.id) || containerNodes[0]?.id;
+    const siblings = childNodes.filter((c) => childToParentMap.get(c.id) === parentContainerId);
+    const siblingIndex = siblings.findIndex((c) => c.id === node.id);
+    const idx = siblingIndex !== -1 ? siblingIndex : index;
+
+    const row = Math.floor(idx / 5);
+    const col = idx % 5;
+    const relX = 40 + col * 220;
+    const relY = 80 + row * 260;
+
+    return {
+      ...node,
+      width: 190,
+      height: 160,
+      initialWidth: 190,
+      initialHeight: 160,
+      parentId: parentContainerId,
+      extent: 'parent' as const,
+      position: {
+        x: relX,
+        y: relY,
+      },
+    };
+  });
+
+  // Container nodes MUST come first in array for subflows to render properly behind children
   return { 
-    nodes: [...positionedContainerNodes, ...positionedRegularNodes], 
+    nodes: [...positionedContainers, ...positionedExternalNodes, ...positionedChildNodes], 
     edges 
   };
 };
@@ -255,20 +243,7 @@ const FlowInner: React.FC<DiagramCanvasProps> = ({
 
   // Transform architecture.nodes to ReactFlow nodes
   const initialNodes: Node[] = useMemo(() => {
-    // Collect child-to-parent mapping from architecture nodes
-    const childToParentMap = new Map<string, string>();
-    architecture.nodes.forEach((n) => {
-      const isContainer = n.type === 'containerNode' || n.data?.isContainer;
-      if (isContainer) {
-        const cIds = n.childNodes || n.data?.childNodes || [];
-        cIds.forEach((cId) => childToParentMap.set(cId, n.id));
-      }
-      if (n.parentId || n.parentNode) {
-        childToParentMap.set(n.id, (n.parentId || n.parentNode)!);
-      }
-    });
-
-    // Sort so container nodes come first in the ReactFlow array hierarchy
+    // Sort so container nodes come first in the ReactFlow array hierarchy (renders behind)
     const sorted = [...architecture.nodes].sort((a, b) => {
       const aIsContainer = a.type === 'containerNode' || a.data?.isContainer;
       const bIsContainer = b.type === 'containerNode' || b.data?.isContainer;
@@ -281,10 +256,10 @@ const FlowInner: React.FC<DiagramCanvasProps> = ({
       const isNodeActive = activeStep?.activeNodeIds.includes(n.id) ?? false;
       const isContainer = n.type === 'containerNode' || n.data?.isContainer;
       const childNodes = n.childNodes || n.data?.childNodes || [];
-      const parentId = childToParentMap.get(n.id);
+      const parentId = n.parentId || (n.data as unknown as { parentId?: string })?.parentId;
       
-      const nodeWidth = typeof n.width === 'number' ? n.width : (typeof n.style?.width === 'number' ? n.style.width : (isContainer ? 1780 : 190));
-      const nodeHeight = typeof n.height === 'number' ? n.height : (typeof n.style?.height === 'number' ? n.style.height : (isContainer ? 1040 : 160));
+      const nodeWidth = typeof n.width === 'number' ? n.width : (typeof n.style?.width === 'number' ? n.style.width : (isContainer ? 1140 : 190));
+      const nodeHeight = typeof n.height === 'number' ? n.height : (typeof n.style?.height === 'number' ? n.style.height : (isContainer ? 580 : 160));
 
       const nodeStyle: React.CSSProperties = {
         width: nodeWidth,
@@ -297,19 +272,20 @@ const FlowInner: React.FC<DiagramCanvasProps> = ({
         id: n.id,
         type: isContainer ? 'containerNode' : (n.type || 'architectureNode'),
         position: n.position || { x: 0, y: 0 },
+        parentId: parentId || undefined,
+        extent: parentId ? ('parent' as const) : undefined,
         width: nodeWidth,
         height: nodeHeight,
         initialWidth: nodeWidth,
         initialHeight: nodeHeight,
-        ...(parentId ? { parentId } : {}),
         style: Object.keys(nodeStyle).length > 0 ? nodeStyle : undefined,
         data: {
           ...n.data,
           isContainer,
           childNodes,
+          parentId,
           width: nodeWidth,
           height: nodeHeight,
-          parentId,
           activeInSimulation: isNodeActive,
         },
       };
