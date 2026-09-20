@@ -1,0 +1,1757 @@
+{
+  "id": "arch-k8s-qwen-litellm",
+  "slug": "llm-on-kubernetes",
+  "title": "Hosting LLM on Kubernetes",
+  "enabled": true,
+  "subtitle": "Self-hosted Qwen 2.5 3B Instruct LLM on Kubernetes cluster managed via Argo CD GitOps, secured with Cloudflare Tunnels & Traefik Ingress, orchestrated by LiteLLM Gateway, NextChat UI, Headlamp dashboard, Langfuse tracing, and Netdata telemetry.",
+  "category": "AI & LLM Orchestration",
+  "version": "v1.4.0",
+  "publishedDate": "2026-09-18",
+  "lastUpdated": "2026-09-19",
+  "author": {
+    "name": "Utkarsh",
+    "role": "Lead AI Platform & Kubernetes Architect",
+    "avatar": "UD"
+  },
+  "readingTime": "7 min read",
+  "tags": [
+    "Kubernetes",
+    "GitOps",
+    "Argo CD",
+    "GitHub",
+    "Cloudflare",
+    "Cloudflared Tunnel",
+    "Traefik",
+    "Headlamp",
+    "Qwen 2.5 3B",
+    "LiteLLM",
+    "NextChat",
+    "Langfuse",
+    "Netdata",
+    "LLM Observability",
+    "Inference"
+  ],
+  "overview": {
+    "summary": "An enterprise-grade, privacy-first LLM hosting platform running entirely on Kubernetes and automated via GitOps (Local PC -> GitHub -> Argo CD). External users route through Cloudflare Portal DNS & edge security into an in-cluster Cloudflared Tunnel, which passes traffic to Traefik Ingress Controller. The parent Kubernetes cluster encapsulates all microservices and inference engines: serving the high-performance Qwen 2.5 3B Instruct model behind an intelligent LiteLLM proxy, fronted by NextChat UI, managed visually via Headlamp, tracked comprehensively by Langfuse for prompt/token telemetry, and monitored in real time via Netdata.",
+    "problemStatement": "Commercial LLM APIs introduce recurring per-token expenses, vendor lock-in, data privacy hazards, and opaque latency spikes. Deploying raw self-hosted models without unified ingress, zero-trust perimeter security, GitOps automation, session tracking, and hardware telemetry leads to unmanaged token exhaustion, configuration drift, exposed firewall ports, and operational blind spots.",
+    "corePrinciples": [
+      "Declarative GitOps Lifecycle: All cluster configurations, models, and ingress routes version-controlled in GitHub and continuously synced by Argo CD into Kubernetes.",
+      "Zero Inbound Attack Surface: External access managed through Cloudflare Portal DNS and in-cluster Cloudflared Tunnel without opening inbound firewall ports or exposing public IPs.",
+      "Cloud-Native Ingress Routing: Traefik routes domain traffic internally with automated TLS termination and dynamic service discovery.",
+      "Encapsulated Kubernetes Cluster Mesh: All inference pods, gateways, telemetry agents, dashboards, and databases run as native child workloads under the Kubernetes container parent.",
+      "Zero Data Leakage: Complete control over inference workloads with in-cluster model execution hosted on Kubernetes.",
+      "Unified LiteLLM Proxying: Standardized OpenAI-compatible API interface with key budgeting, rate limiting, and automated Langfuse callbacks.",
+      "Multi-Plane Observability: Headlamp for Kubernetes cluster operations, Langfuse for LLM traces/token analytics, and Netdata for per-second CPU/GPU/memory hardware diagnostics."
+    ],
+    "targetScale": {
+      "dailyActiveUsers": "Private Internal Teams & Enterprise Clients",
+      "throughput": "120+ tokens/sec per inference pod",
+      "storageVolume": "Quantized Model Weights & Tracing Databases",
+      "globalLatencyP99": "< 45ms TTFT (Time To First Token)"
+    }
+  },
+  "keyMetrics": {
+    "availabilitySLA": "99.95%",
+    "readLatencyP99": "35 ms (Time To First Token)",
+    "writeLatencyP99": "12 ms (Trace Ingestion)",
+    "resilienceTier": "High-Availability K8s Deployment with Auto-Restart & GitOps Self-Healing",
+    "costOptimizationTier": "Tier 1 (Zero Per-Token API Costs)"
+  },
+  "nodes": [
+    {
+      "id": "node-k8s-cluster",
+      "type": "containerNode",
+      "position": {
+        "x": 380,
+        "y": 40
+      },
+      "width": 1780,
+      "height": 1040,
+      "childNodes": [
+        "node-cloudflared",
+        "node-langfuse",
+        "node-headlamp",
+        "node-postgres-db",
+        "node-argocd",
+        "node-netdata",
+        "node-traefik",
+        "node-nextchat",
+        "node-litellm",
+        "node-qwen"
+      ],
+      "data": {
+        "id": "node-k8s-cluster",
+        "label": "Kubernetes Cluster (Parent Container)",
+        "subtitle": "k8s-cluster.plotkai.in — Dedicated GPU Inference & Microservice Mesh",
+        "category": "compute",
+        "iconName": "Layers",
+        "isContainer": true,
+        "containerBadge": "K8s v1.30 Core Control Plane",
+        "childNodes": [
+          "node-cloudflared",
+          "node-langfuse",
+          "node-headlamp",
+          "node-postgres-db",
+          "node-argocd",
+          "node-netdata",
+          "node-traefik",
+          "node-nextchat",
+          "node-litellm",
+          "node-qwen"
+        ],
+        "description": "Parent Kubernetes container block hosting the control plane, worker nodes, and container runtime for all child ingress, inference, gateway, and observability workloads.",
+        "techStack": [
+          "Kubernetes 1.30+",
+          "Cilium CNI",
+          "Kube-Scheduler",
+          "CoreDNS",
+          "cert-manager",
+          "Containerd"
+        ],
+        "specs": {
+          "qps": "50,000 API req/s",
+          "p99Latency": "< 3ms Control Plane Overhead",
+          "replicas": "3 Control Plane Nodes + Worker Pools",
+          "sla": "99.99% Cluster Uptime",
+          "failoverStrategy": "Multi-Master etcd Quorum",
+          "stateful": true,
+          "resourceAllocation": "Multi-Node Cluster (Dedicated GPU Worker Nodes)"
+        },
+        "responsibilities": [
+          "Orchestrates all child pods, DaemonSets, and StatefulSets across namespaces",
+          "Allocates GPU and multi-core CPU compute resources to Qwen inference engine",
+          "Provides in-cluster DNS resolution (CoreDNS) and internal network routing (Cilium CNI)",
+          "Manages PersistentVolumeClaims (PVCs) for PostgreSQL and model cache storage"
+        ],
+        "failureModes": [
+          "Node drain or eviction during underlying physical host maintenance",
+          "Worker node memory pressure triggering pod OOMKilled events"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: llm-platform\n  labels:\n    environment: production\n    managed-by: argocd\n---\napiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: llm-internal-isolation\n  namespace: llm-platform\nspec:\n  podSelector: {}\n  policyTypes:\n  - Ingress\n  - Egress"
+        }
+      }
+    },
+    {
+      "id": "node-cloudflare-portal",
+      "type": "architectureNode",
+      "position": {
+        "x": 40,
+        "y": 170
+      },
+      "data": {
+        "id": "node-cloudflare-portal",
+        "label": "Cloudflare Portal & DNS",
+        "subtitle": "dash.cloudflare.com — DNS & Edge",
+        "url": "https://dash.cloudflare.com",
+        "category": "gateway",
+        "description": "External Cloudflare edge network and authoritative DNS portal. Manages DNS records (A, CNAME, Tunnel) for *.plotkai.in, enforces WAF/DDoS security rules, and routes web traffic into the in-cluster Cloudflared Tunnel.",
+        "iconName": "Globe",
+        "techStack": [
+          "Cloudflare DNS",
+          "Cloudflare Zero Trust / Tunnels",
+          "WAF / DDoS Shield",
+          "Edge SSL / TLS 1.3",
+          "Anycast CDN"
+        ],
+        "specs": {
+          "qps": "Global Anycast Capacity",
+          "p99Latency": "< 10ms Anycast DNS Resolution",
+          "replicas": "Global Anycast Edge Network",
+          "sla": "100% DNS Availability SLA",
+          "failoverStrategy": "Global Anycast Edge Routing",
+          "stateful": false,
+          "resourceAllocation": "Cloudflare Global Edge"
+        },
+        "responsibilities": [
+          "Manages authoritative DNS records for chat, gateway, langfuse, netdata, headlamp, and argocd domains",
+          "Terminates public TLS connections at the Cloudflare global edge",
+          "Protects Kubernetes infrastructure from DDoS attacks and malicious web traffic",
+          "Routes inbound requests directly into active Cloudflare Tunnels without exposing cluster public IPs"
+        ],
+        "failureModes": [
+          "DNS propagation delay during manual domain record adjustments",
+          "Edge WAF false positives blocking legitimate API requests"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "# Cloudflare DNS & Tunnel configuration for plotkai.in\ntunnel: 6ff4b8e2-xxxx-xxxx-xxxx-xxxxxxxxxxxx\ncredentials-file: /etc/cloudflared/creds.json\ningress:\n  - hostname: chat.plotkai.in\n    service: http://traefik.traefik.svc.cluster.local:80\n  - hostname: gateway.plotkai.in\n    service: http://traefik.traefik.svc.cluster.local:80\n  - hostname: headlamp.plotkai.in\n    service: http://traefik.traefik.svc.cluster.local:80\n  - service: http_status:404"
+        }
+      }
+    },
+    {
+      "id": "node-user-client",
+      "type": "architectureNode",
+      "position": {
+        "x": 40,
+        "y": 720
+      },
+      "data": {
+        "id": "node-user-client",
+        "label": "User Client",
+        "subtitle": "Web Browser & API Consumer",
+        "url": "https://chat.plotkai.in/#/",
+        "category": "client",
+        "description": "External end-user workstation, browser, or mobile client. Connects via Cloudflare DNS & Tunnel to NextChat UI at chat.plotkai.in/#/ to submit prompts, manage conversational sessions, and stream real-time Qwen 2.5 AI completions.",
+        "iconName": "Users",
+        "techStack": [
+          "Web Browser (Chrome / Safari / Firefox)",
+          "NextChat Client",
+          "Server-Sent Events (SSE)",
+          "HTTP/2 / HTTP/3",
+          "TLS 1.3"
+        ],
+        "specs": {
+          "qps": "Interactive Chat Sessions",
+          "p99Latency": "< 35ms User Experience",
+          "replicas": "Distributed Client Sessions",
+          "sla": "End-User Client",
+          "stateful": false,
+          "resourceAllocation": "Client Device"
+        },
+        "responsibilities": [
+          "Resolves chat.plotkai.in via Cloudflare DNS and routes through edge tunnel",
+          "Transmits chat prompt requests via HTTPS to NextChat UI via Traefik",
+          "Consumes streaming Server-Sent Events (SSE) token chunks with live markdown rendering",
+          "Stores local conversation history and user persona templates"
+        ],
+        "failureModes": [
+          "Client internet disconnection interrupting active token stream",
+          "Browser local storage quota exhaustion for conversation cache"
+        ],
+        "configSnippet": {
+          "language": "bash",
+          "code": "# Connect directly via browser or send OpenAI-compatible prompt:\ncurl -X POST https://chat.plotkai.in/api/openai/v1/chat/completions \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\": \"qwen-2.5-3b-instruct\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello Qwen!\"}], \"stream\": true}'"
+        }
+      }
+    },
+    {
+      "id": "node-github",
+      "type": "architectureNode",
+      "position": {
+        "x": 2240,
+        "y": 170
+      },
+      "data": {
+        "id": "node-github",
+        "label": "GitHub GitOps Repo",
+        "subtitle": "github.com/org/k8s-llm-gitops",
+        "url": "https://github.com",
+        "category": "queue",
+        "description": "Central version-controlled source of truth containing declarative Kubernetes manifests, Helm charts, Kustomize overlays, and Argo CD Application definitions.",
+        "iconName": "GitBranch",
+        "techStack": [
+          "GitHub VCS",
+          "GitOps",
+          "Branch Protection",
+          "Webhooks",
+          "Kustomize"
+        ],
+        "specs": {
+          "qps": "On Git Push Event",
+          "p99Latency": "< 200ms Webhook Dispatch",
+          "replicas": "Distributed GitHub Storage",
+          "sla": "99.95% Availability",
+          "stateful": true,
+          "resourceAllocation": "Git Cloud Repository"
+        },
+        "responsibilities": [
+          "Maintains versioned, auditable history of all cluster workloads and model configs",
+          "Enforces branch protection rules, code reviews, and automated linting checks",
+          "Dispatches push webhooks to Argo CD to trigger immediate cluster reconciliation"
+        ],
+        "failureModes": [
+          "Merge conflicts on main branch delaying automated rollouts",
+          "Webhook delivery delay resolved via Argo CD periodic polling fallback"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: argoproj.io/v1alpha1\nkind: Application\nmetadata:\n  name: k8s-llm-stack\n  namespace: argocd\nspec:\n  project: default\n  source:\n    repoURL: https://github.com/org/k8s-llm-gitops.git\n    targetRevision: HEAD\n    path: manifests/llm-platform\n  destination:\n    server: https://kubernetes.default.svc\n    namespace: llm-platform\n  syncPolicy:\n    automated:\n      prune: true\n      selfHeal: true"
+        }
+      }
+    },
+    {
+      "id": "node-local-pc",
+      "type": "architectureNode",
+      "position": {
+        "x": 2240,
+        "y": 530
+      },
+      "data": {
+        "id": "node-local-pc",
+        "label": "Local PC (Dev Workstation)",
+        "subtitle": "Developer Machine",
+        "category": "client",
+        "description": "Developer workstation for writing LLM application manifests, tuning LiteLLM configs, modifying Helm/Kustomize overlays, and pushing Git commits.",
+        "iconName": "Laptop",
+        "techStack": [
+          "VS Code",
+          "Git CLI",
+          "Kubectl",
+          "Kustomize",
+          "Helm",
+          "Docker"
+        ],
+        "specs": {
+          "qps": "Local Development",
+          "p99Latency": "< 10ms Local Execution",
+          "replicas": "1 Workstation",
+          "sla": "Local Dev",
+          "stateful": true,
+          "resourceAllocation": "Apple Silicon / Linux Workstation"
+        },
+        "responsibilities": [
+          "Authors and edits Kubernetes manifests, Helm values, and LiteLLM configurations",
+          "Tests prompt templates and verifies local API routes against cluster endpoints",
+          "Pushes signed Git commits and pull requests to the GitHub repository"
+        ],
+        "failureModes": [
+          "Local YAML syntax/formatting errors caught prior to commit",
+          "Uncommitted local drift between workstation and remote Git repository"
+        ],
+        "configSnippet": {
+          "language": "bash",
+          "code": "# Commit and push LLM platform manifests to GitHub\ngit add k8s/manifests/litellm.yaml k8s/manifests/qwen-inference.yaml k8s/manifests/traefik.yaml\ngit commit -m \"feat(gitops): update Qwen vLLM batching, Traefik routes & LiteLLM specs\"\ngit push origin main"
+        }
+      }
+    },
+    {
+      "id": "node-cloudflared",
+      "type": "architectureNode",
+      "parentId": "node-k8s-cluster",
+      "position": {
+        "x": 100,
+        "y": 150
+      },
+      "data": {
+        "id": "node-cloudflared",
+        "label": "Cloudflared Tunnel Daemon",
+        "subtitle": "Zero Trust Ingress Agent",
+        "category": "security",
+        "description": "Child Kubernetes Deployment in namespace 'cloudflare'. Runs the lightweight Cloudflare Tunnel daemon (`cloudflared`), creating secure outbound-only encrypted QUIC/HTTP2 tunnels to Cloudflare Edge without exposing public IP addresses or opening inbound firewall ports.",
+        "iconName": "ShieldCheck",
+        "techStack": [
+          "Cloudflare Tunnel",
+          "cloudflared",
+          "QUIC / HTTP2",
+          "Zero Trust",
+          "k8s Secret"
+        ],
+        "specs": {
+          "qps": "10,000 req/s",
+          "p99Latency": "< 3ms Tunnel Transit",
+          "replicas": "2 Replicas (High Availability)",
+          "sla": "99.99%",
+          "failoverStrategy": "Multi-Replica Active-Active Tunnel",
+          "stateful": false,
+          "resourceAllocation": "0.2 vCPU / 256MB RAM"
+        },
+        "responsibilities": [
+          "Maintains persistent outbound encrypted QUIC/HTTP2 tunnels to Cloudflare global edge",
+          "Securely delivers incoming internet traffic directly to the in-cluster Traefik Ingress Controller",
+          "Eliminates public IP requirements and closes all inbound firewall ports",
+          "Handles automatic connection health checks and seamless tunnel reconnection"
+        ],
+        "failureModes": [
+          "Tunnel token invalidation or secret configuration drift",
+          "Temporary egress network disruption causing tunnel reconnection delay"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: cloudflared\n  namespace: cloudflare\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: cloudflared\n  template:\n    metadata:\n      labels:\n        app: cloudflared\n    spec:\n      containers:\n      - name: cloudflared\n        image: cloudflare/cloudflared:latest\n        args: [\"tunnel\", \"--no-autoupdate\", \"run\", \"--token\", \"$(TUNNEL_TOKEN)\"]\n        env:\n        - name: TUNNEL_TOKEN\n          valueFrom:\n            secretKeyRef:\n              name: cloudflare-tunnel-token\n              key: token"
+        }
+      }
+    },
+    {
+      "id": "node-langfuse",
+      "type": "architectureNode",
+      "parentId": "node-k8s-cluster",
+      "position": {
+        "x": 430,
+        "y": 150
+      },
+      "data": {
+        "id": "node-langfuse",
+        "label": "Langfuse LLM Tracing",
+        "subtitle": "langfuse.plotkai.in",
+        "url": "https://langfuse.plotkai.in/",
+        "category": "monitoring",
+        "description": "Child Kubernetes Deployment in namespace 'llm-platform'. Observability platform tracking traces, token consumption, and prompt revisions. Demo login: tester@plotkai.in / Tester@123456.",
+        "iconName": "Activity",
+        "techStack": [
+          "Langfuse",
+          "PostgreSQL",
+          "ClickHouse",
+          "Next.js",
+          "OpenTelemetry"
+        ],
+        "specs": {
+          "qps": "15K trace events/s",
+          "p99Latency": "12 ms Async Ingestion",
+          "replicas": "2 Pods (K8s Deployment)",
+          "sla": "99.95%",
+          "failoverStrategy": "Buffered queue with persistent store",
+          "stateful": true,
+          "resourceAllocation": "1 vCPU / 2GB RAM"
+        },
+        "responsibilities": [
+          "Visualizes end-to-end user request traces and execution graphs",
+          "Calculates token counts, generation latencies, and estimated cost savings",
+          "Monitors model quality, output evaluations, and user feedback",
+          "Provides analytics dashboard and query console at langfuse.plotkai.in"
+        ],
+        "failureModes": [
+          "Trace ingestion queue lag during burst workloads",
+          "Database storage growth requiring log retention pruning"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "env:\n  - name: LANGFUSE_PUBLIC_KEY\n    value: \"pk-lf-prod-k8s-mesh\"\n  - name: LANGFUSE_SECRET_KEY\n    valueFrom:\n      secretKeyRef:\n        name: langfuse-secrets\n        key: secret-key\n  - name: LANGFUSE_HOST\n    value: \"https://langfuse.plotkai.in\""
+        }
+      }
+    },
+    {
+      "id": "node-headlamp",
+      "type": "architectureNode",
+      "parentId": "node-k8s-cluster",
+      "position": {
+        "x": 760,
+        "y": 150
+      },
+      "data": {
+        "id": "node-headlamp",
+        "label": "Headlamp K8s Dashboard",
+        "subtitle": "headlamp.plotkai.in",
+        "url": "https://headlamp.plotkai.in",
+        "category": "monitoring",
+        "description": "Child Kubernetes Deployment in namespace 'kube-system'. Modern, extensible web dashboard for visual cluster management, pod logs, CRD inspection, GPU allocation tracking, and RBAC-controlled operations.",
+        "iconName": "Monitor",
+        "techStack": [
+          "Headlamp",
+          "Kubernetes Dashboard",
+          "React",
+          "OIDC / RBAC",
+          "Helm"
+        ],
+        "specs": {
+          "qps": "Internal Admin Sessions",
+          "p99Latency": "< 15ms Dashboard Load",
+          "replicas": "1 Pod (K8s Deployment)",
+          "sla": "99.95%",
+          "failoverStrategy": "Pod Auto-Restart",
+          "stateful": false,
+          "resourceAllocation": "0.3 vCPU / 256MB RAM"
+        },
+        "responsibilities": [
+          "Provides graphical visualization of all cluster nodes, namespaces, pods, and workloads",
+          "Allows streaming container logs, events, and resource metrics directly in browser",
+          "Enforces Kubernetes RBAC permissions for cluster operators and developers",
+          "Delivers plugin support for custom CRDs and cluster extensions at headlamp.plotkai.in"
+        ],
+        "failureModes": [
+          "API server rate limiting during heavy concurrent log streaming sessions",
+          "Expired token or service account authentication failure"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: headlamp\n  namespace: kube-system\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app.kubernetes.io/name: headlamp\n  template:\n    metadata:\n      labels:\n        app.kubernetes.io/name: headlamp\n    spec:\n      serviceAccountName: headlamp-admin\n      containers:\n      - name: headlamp\n        image: ghcr.io/headlamp-k8s/headlamp:latest\n        ports:\n        - containerPort: 4466"
+        }
+      }
+    },
+    {
+      "id": "node-postgres-db",
+      "type": "architectureNode",
+      "parentId": "node-k8s-cluster",
+      "position": {
+        "x": 1090,
+        "y": 150
+      },
+      "data": {
+        "id": "node-postgres-db",
+        "label": "PostgreSQL & Redis DB",
+        "subtitle": "State & Virtual Key Store",
+        "category": "database",
+        "description": "Child Kubernetes StatefulSet & PersistentVolumeClaim in namespace 'llm-platform'. Relational database powering LiteLLM keys, user quotas, and Langfuse state.",
+        "iconName": "Database",
+        "techStack": [
+          "PostgreSQL 16",
+          "CloudNativePG",
+          "Redis",
+          "PersistentVolumeClaims"
+        ],
+        "specs": {
+          "qps": "8,000 ops/s",
+          "p99Latency": "1.8 ms",
+          "replicas": "Primary + Read Replica (K8s Pods)",
+          "sla": "99.99%",
+          "failoverStrategy": "Automated leader failover",
+          "stateful": true,
+          "resourceAllocation": "1 vCPU / 4GB RAM"
+        },
+        "responsibilities": [
+          "Persists LiteLLM virtual keys, rate limits, and team token usage",
+          "Stores Langfuse trace metadata, user tags, and scores",
+          "Provides low-latency session caching via Redis"
+        ],
+        "failureModes": [
+          "Disk IOPS saturation during high trace volume writes",
+          "Storage volume capacity alerts requiring PVC expansion"
+        ],
+        "configSnippet": {
+          "language": "sql",
+          "code": "CREATE TABLE litellm_spend_logs (\n    spend_id UUID PRIMARY KEY,\n    api_key VARCHAR(255),\n    model VARCHAR(100),\n    prompt_tokens INT,\n    completion_tokens INT,\n    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);"
+        }
+      }
+    },
+    {
+      "id": "node-argocd",
+      "type": "architectureNode",
+      "parentId": "node-k8s-cluster",
+      "position": {
+        "x": 1420,
+        "y": 150
+      },
+      "data": {
+        "id": "node-argocd",
+        "label": "Argo CD Controller",
+        "subtitle": "argocd.plotkai.in",
+        "url": "https://argocd.plotkai.in",
+        "category": "gateway",
+        "description": "Child Kubernetes GitOps continuous delivery controller in namespace 'argocd'. Monitors GitHub and synchronizes desired state across every Kubernetes pod, ingress route, and workload.",
+        "iconName": "Workflow",
+        "techStack": [
+          "Argo CD",
+          "GitOps",
+          "Kubernetes Controller",
+          "ApplicationSet",
+          "Helm"
+        ],
+        "specs": {
+          "qps": "Continuous Sync & Polling (3m interval / webhook trigger)",
+          "p99Latency": "< 2.5s Sync Time",
+          "replicas": "2 Replicas (HA Controller)",
+          "sla": "99.99% GitOps SLA",
+          "failoverStrategy": "Active-Passive Leader Election",
+          "stateful": true,
+          "resourceAllocation": "1 vCPU / 2GB RAM"
+        },
+        "responsibilities": [
+          "Continuously detects drift between Git desired state and live Kubernetes cluster state",
+          "Applies automated, zero-downtime rolling updates to Traefik, NextChat, LiteLLM, Qwen, Netdata, and Postgres",
+          "Provides self-healing to automatically revert unapproved manual cluster mutations",
+          "Visualizes resource sync status and deployment history at argocd.plotkai.in"
+        ],
+        "failureModes": [
+          "Out-of-sync cluster state caused by manual unmanaged kubectl interventions",
+          "Manifest validation error blocking sync cycle until Git commit fix"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: argoproj.io/v1alpha1\nkind: ApplicationSet\nmetadata:\n  name: llm-cluster-workloads\n  namespace: argocd\nspec:\n  generators:\n  - list:\n      elements:\n      - name: traefik-ingress\n      - name: cloudflared-tunnel\n      - name: nextchat-ui\n      - name: headlamp-ui\n      - name: litellm-gateway\n      - name: qwen-inference\n      - name: langfuse-tracing\n      - name: netdata-telemetry\n      - name: postgres-db\n  template:\n    metadata:\n      name: '{{name}}'\n    spec:\n      project: default\n      source:\n        repoURL: https://github.com/org/k8s-llm-gitops.git\n        path: 'k8s/{{name}}'\n      destination:\n        server: https://kubernetes.default.svc\n        namespace: llm-platform"
+        }
+      }
+    },
+    {
+      "id": "node-netdata",
+      "type": "architectureNode",
+      "parentId": "node-k8s-cluster",
+      "position": {
+        "x": 1420,
+        "y": 440
+      },
+      "data": {
+        "id": "node-netdata",
+        "label": "Netdata Telemetry",
+        "subtitle": "netdata.plotkai.in",
+        "url": "https://netdata.plotkai.in/",
+        "category": "monitoring",
+        "description": "Child Kubernetes DaemonSet running across all cluster nodes in namespace 'monitoring'. Deployed by Argo CD and accessed via Traefik Ingress. Monitor GPU VRAM, CPU load, and network I/O in real time (Click 'Skip' / 'Explore without sign in' to view dashboard).",
+        "iconName": "Radio",
+        "techStack": [
+          "Netdata Agent",
+          "eBPF",
+          "cgroups v2",
+          "Prometheus Exporter",
+          "K8s DaemonSet"
+        ],
+        "specs": {
+          "qps": "Per-Second Telemetry Resolution",
+          "p99Latency": "< 5ms Dashboard Update",
+          "replicas": "DaemonSet per K8s Node",
+          "sla": "99.99%",
+          "failoverStrategy": "Distributed local buffer",
+          "stateful": false,
+          "resourceAllocation": "0.2 vCPU / 256MB RAM per node"
+        },
+        "responsibilities": [
+          "Collects high-frequency 1-second interval hardware telemetry across cluster nodes",
+          "Monitors GPU temperature, VRAM allocation, and CUDA compute saturation",
+          "Tracks Kubernetes pod memory limits and CPU throttling",
+          "Exposes interactive real-time dashboard through Traefik at netdata.plotkai.in"
+        ],
+        "failureModes": [
+          "eBPF sensor permission constraints on restricted kernel nodes",
+          "Browser rendering lag when streaming 1,000+ real-time metric charts simultaneously"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: argoproj.io/v1alpha1\nkind: HelmRelease\nmetadata:\n  name: netdata\n  namespace: monitoring\nspec:\n  chart:\n    spec:\n      chart: netdata\n      version: 3.7.x\n  values:\n    k8sState:\n      enabled: true\n    parent:\n      database:\n        persistence: true"
+        }
+      }
+    },
+    {
+      "id": "node-traefik",
+      "type": "architectureNode",
+      "parentId": "node-k8s-cluster",
+      "position": {
+        "x": 100,
+        "y": 720
+      },
+      "data": {
+        "id": "node-traefik",
+        "label": "Traefik Ingress Controller",
+        "subtitle": "traefik.plotkai.in",
+        "url": "https://traefik.plotkai.in",
+        "category": "gateway",
+        "description": "Child Kubernetes Ingress Controller in namespace 'traefik'. Cloud-native reverse proxy routing HTTP/HTTPS traffic to internal microservices (NextChat, LiteLLM, Headlamp, Langfuse, Netdata, Argo CD) with TLS termination and middleware.",
+        "iconName": "Shuffle",
+        "techStack": [
+          "Traefik v3",
+          "Kubernetes Ingress / IngressRoute",
+          "Let's Encrypt",
+          "HTTP/2 & HTTP/3",
+          "Middleware"
+        ],
+        "specs": {
+          "qps": "15,000 req/s",
+          "p99Latency": "< 2ms Routing Overhead",
+          "replicas": "2 Replicas (HA Ingress)",
+          "sla": "99.99%",
+          "failoverStrategy": "Load Balanced Pod Replicas",
+          "stateful": false,
+          "resourceAllocation": "0.5 vCPU / 512MB RAM"
+        },
+        "responsibilities": [
+          "Routes incoming domain requests (chat, gateway, headlamp, langfuse, netdata, argocd) to target Services",
+          "Applies gzip/brotli compression, rate limiting, and CORS headers",
+          "Performs SSL/TLS termination and automated certificate renewal",
+          "Provides real-time health checks and dynamic service discovery across all Kubernetes pods"
+        ],
+        "failureModes": [
+          "Misconfigured IngressRoute path matching causing 404 or 502 Bad Gateway errors",
+          "Upstream backend pod connection timeout during rolling deployments"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: traefik.io/v1alpha1\nkind: IngressRoute\nmetadata:\n  name: nextchat-ingress\n  namespace: llm-platform\nspec:\n  entryPoints:\n    - websecure\n  routes:\n  - match: Host(`chat.plotkai.in`)\n    kind: Rule\n    services:\n    - name: nextchat-service\n      port: 3000\n "
+        }
+      }
+    },
+    {
+      "id": "node-nextchat",
+      "type": "architectureNode",
+      "parentId": "node-k8s-cluster",
+      "position": {
+        "x": 430,
+        "y": 720
+      },
+      "data": {
+        "id": "node-nextchat",
+        "label": "NextChat UI",
+        "subtitle": "chat.plotkai.in",
+        "url": "https://chat.plotkai.in/#/",
+        "category": "client",
+        "description": "Child Kubernetes Deployment pod in namespace 'llm-platform'. Modern chat client delivering streaming conversations and multi-session management. Accessible live at chat.plotkai.in/#/.",
+        "iconName": "Bot",
+        "techStack": [
+          "NextChat",
+          "Next.js",
+          "React",
+          "Server-Sent Events",
+          "TailwindCSS"
+        ],
+        "specs": {
+          "qps": "Concurrent WebSocket / SSE Streams",
+          "p99Latency": "< 20ms UI Render",
+          "replicas": "2 Replicas (K8s Pods)",
+          "sla": "99.99%",
+          "failoverStrategy": "Ingress Load Balanced",
+          "stateful": false,
+          "resourceAllocation": "0.5 vCPU / 512MB RAM"
+        },
+        "responsibilities": [
+          "Renders real-time markdown, code highlighting, and streaming responses",
+          "Maintains client-side chat histories and custom system prompts",
+          "Sends authenticated completions to the LiteLLM gateway pod",
+          "Supports dark mode, responsive layout, and one-click session export"
+        ],
+        "failureModes": [
+          "SSE stream disconnection on network disruption",
+          "Local storage quota exhaustion for conversation history"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: nextchat-ui\n  namespace: llm-platform\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: nextchat-ui\n  template:\n    metadata:\n      labels:\n        app: nextchat-ui\n    spec:\n      containers:\n      - name: nextchat\n        image: yidadaa/chatgpt-next-web:latest\n        ports:\n        - containerPort: 3000\n        env:\n        - name: BASE_URL\n          value: \"http://litellm-gateway-service.llm-platform.svc:4000/v1\"\n        - name: OPENAI_API_KEY\n          valueFrom:\n            secretKeyRef:\n              name: litellm-keys\n              key: master-key"
+        }
+      }
+    },
+    {
+      "id": "node-litellm",
+      "type": "architectureNode",
+      "parentId": "node-k8s-cluster",
+      "position": {
+        "x": 760,
+        "y": 720
+      },
+      "data": {
+        "id": "node-litellm",
+        "label": "LiteLLM AI Gateway",
+        "subtitle": "gateway.plotkai.in",
+        "url": "https://gateway.plotkai.in/ui",
+        "category": "gateway",
+        "description": "Child Kubernetes Deployment pod in namespace 'llm-platform'. Central AI router and quota enforcer. Credentials: tester@plotkai.in / Tester@123456.",
+        "iconName": "Shuffle",
+        "techStack": [
+          "LiteLLM Proxy",
+          "FastAPI",
+          "Uvicorn",
+          "PostgreSQL",
+          "Redis"
+        ],
+        "specs": {
+          "qps": "2,500 req/s",
+          "p99Latency": "4.5 ms Overhead",
+          "replicas": "3 Pods (HPA on K8s)",
+          "sla": "99.99%",
+          "failoverStrategy": "Automatic fallback & retry",
+          "stateful": false,
+          "resourceAllocation": "2 vCPU / 2GB RAM"
+        },
+        "responsibilities": [
+          "Translates standard OpenAI API requests to local model endpoints",
+          "Enforces team API keys, spend budgets, and rate limiting",
+          "Asynchronously forwards generation metrics to Langfuse",
+          "Provides management UI and virtual key generation at gateway.plotkai.in"
+        ],
+        "failureModes": [
+          "Upstream model pod saturation causing timeout errors",
+          "PostgreSQL connection exhaustion during sudden traffic spikes"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "model_list:\n  - model_name: qwen-2.5-3b-instruct\n    litellm_params:\n      model: openai/qwen2.5-3b\n      api_base: http://qwen-inference-service.llm-platform.svc:8000/v1\n      api_key: \"EMPTY\"\nlitellm_settings:\n  callbacks:\n    - langfuse\n  success_callback:\n    - langfuse\n  failure_callback:\n    - langfuse"
+        }
+      }
+    },
+    {
+      "id": "node-qwen",
+      "type": "architectureNode",
+      "parentId": "node-k8s-cluster",
+      "position": {
+        "x": 1090,
+        "y": 720
+      },
+      "data": {
+        "id": "node-qwen",
+        "label": "Qwen 2.5 3B Engine",
+        "subtitle": "GPU Inference Pod",
+        "category": "ai",
+        "description": "Child Kubernetes GPU/CPU inference pod in namespace 'llm-platform'. High-performance engine running Alibaba's Qwen2.5-3B-Instruct model with vLLM / PagedAttention.",
+        "iconName": "Cpu",
+        "techStack": [
+          "Qwen 2.5 3B Instruct",
+          "vLLM / Ollama",
+          "CUDA / ROCm",
+          "PyTorch",
+          "PagedAttention"
+        ],
+        "specs": {
+          "qps": "120+ tokens/sec",
+          "p99Latency": "18 ms / token",
+          "replicas": "Dedicated GPU/CPU Worker Pod",
+          "sla": "99.95%",
+          "failoverStrategy": "Pod Auto-Restart & Rolling Updates",
+          "stateful": false,
+          "resourceAllocation": "1x GPU or 8 vCPU / 16GB RAM"
+        },
+        "responsibilities": [
+          "Executes parallelized tensor operations with KV cache reuse",
+          "Generates streaming token responses with low time-to-first-token",
+          "Serves OpenAI-compatible /v1/chat/completions endpoint internally",
+          "Manages dynamic batching for concurrent prompt evaluations"
+        ],
+        "failureModes": [
+          "GPU Out-Of-Memory (OOM) during extreme context window usage",
+          "Context length truncation for prompts exceeding maximum sequence limit"
+        ],
+        "configSnippet": {
+          "language": "yaml",
+          "code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: qwen-inference\n  namespace: llm-platform\nspec:\n  replicas: 1\n  template:\n    spec:\n      containers:\n      - name: model-server\n        image: vllm/vllm-openai:latest\n        args:\n        - \"--model\"\n        - \"Qwen/Qwen2.5-3B-Instruct\"\n        - \"--port\"\n        - \"8000\"\n        - \"--max-model-len\"\n        - \"8192\"\n        resources:\n          limits:\n            nvidia.com/gpu: 1\n            memory: 16Gi"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-user-cloudflare",
+      "source": "node-user-client",
+      "target": "node-cloudflare-portal",
+      "label": "DNS Query & Edge TLS",
+      "animated": true,
+      "style": {
+        "stroke": "#10b981",
+        "strokeWidth": 2
+      },
+      "data": {
+        "id": "edge-user-cloudflare",
+        "protocol": "REST / HTTPS",
+        "latency": "~8 ms",
+        "payloadType": "DNS Query / HTTPS Request",
+        "payloadSample": "GET / HTTP/2\nHost: chat.plotkai.in\nUser-Agent: Mozilla/5.0",
+        "authRequired": false,
+        "bidirectional": true,
+        "description": "User client resolves chat.plotkai.in via Cloudflare DNS and connects to the nearest Cloudflare Edge Anycast PoP."
+      }
+    },
+    {
+      "id": "edge-cloudflare-cloudflared",
+      "source": "node-cloudflare-portal",
+      "target": "node-cloudflared",
+      "label": "Cloudflare Tunnel (QUIC)",
+      "animated": true,
+      "style": {
+        "stroke": "#10b981",
+        "strokeWidth": 2
+      },
+      "data": {
+        "id": "edge-cloudflare-cloudflared",
+        "protocol": "TCP / TLS",
+        "latency": "< 3 ms",
+        "payloadType": "Encrypted Tunnel Stream",
+        "payloadSample": "QUIC / HTTP2 Tunnel Frame\nTunnel-ID: 6ff4b8e2-...\nHost: chat.plotkai.in",
+        "authRequired": true,
+        "bidirectional": true,
+        "description": "Cloudflare edge proxies incoming requests through established outbound-only QUIC tunnels directly into the cluster."
+      }
+    },
+    {
+      "id": "edge-cloudflared-traefik",
+      "source": "node-cloudflared",
+      "target": "node-traefik",
+      "label": "Forward Ingress Traffic",
+      "animated": true,
+      "style": {
+        "stroke": "#10b981",
+        "strokeWidth": 2
+      },
+      "data": {
+        "id": "edge-cloudflared-traefik",
+        "protocol": "REST / HTTPS",
+        "latency": "< 1 ms",
+        "payloadType": "Internal Ingress Forward",
+        "payloadSample": "GET / HTTP/1.1\nHost: chat.plotkai.in\nX-Forwarded-For: 198.51.100.4",
+        "authRequired": false,
+        "bidirectional": true,
+        "description": "Cloudflared daemon forwards decrypted traffic to the Traefik Ingress Controller service inside Kubernetes."
+      }
+    },
+    {
+      "id": "edge-traefik-nextchat",
+      "source": "node-traefik",
+      "target": "node-nextchat",
+      "label": "Route chat.plotkai.in",
+      "animated": true,
+      "style": {
+        "stroke": "#10b981",
+        "strokeWidth": 2
+      },
+      "data": {
+        "id": "edge-traefik-nextchat",
+        "protocol": "REST / HTTPS",
+        "latency": "< 1 ms",
+        "payloadType": "K8s Service Ingress Route",
+        "payloadSample": "GET /#/ HTTP/1.1\nHost: chat.plotkai.in\nUpstream: nextchat-service:3000",
+        "authRequired": false,
+        "bidirectional": true,
+        "description": "Traefik resolves the IngressRoute rule for chat.plotkai.in and load balances traffic to NextChat UI pods."
+      }
+    },
+    {
+      "id": "edge-traefik-litellm",
+      "source": "node-traefik",
+      "target": "node-litellm",
+      "label": "Route gateway.plotkai.in",
+      "animated": true,
+      "style": {
+        "stroke": "#10b981",
+        "strokeWidth": 2
+      },
+      "data": {
+        "id": "edge-traefik-litellm",
+        "protocol": "REST / HTTPS",
+        "latency": "< 1 ms",
+        "payloadType": "API Ingress Route",
+        "payloadSample": "POST /v1/chat/completions HTTP/1.1\nHost: gateway.plotkai.in",
+        "authRequired": true,
+        "bidirectional": true,
+        "description": "Traefik routes gateway API calls and admin dashboard requests to LiteLLM Gateway pods."
+      }
+    },
+    {
+      "id": "edge-traefik-headlamp",
+      "source": "node-traefik",
+      "target": "node-headlamp",
+      "label": "Route headlamp.plotkai.in",
+      "animated": true,
+      "style": {
+        "stroke": "#10b981",
+        "strokeWidth": 2
+      },
+      "data": {
+        "id": "edge-traefik-headlamp",
+        "protocol": "REST / HTTPS",
+        "latency": "< 1 ms",
+        "payloadType": "Cluster UI Ingress Route",
+        "payloadSample": "GET / HTTP/1.1\nHost: headlamp.plotkai.in\nUpstream: headlamp:4466",
+        "authRequired": true,
+        "bidirectional": true,
+        "description": "Traefik directs admin traffic for headlamp.plotkai.in to the Headlamp Kubernetes dashboard pod."
+      }
+    },
+    {
+      "id": "edge-traefik-langfuse",
+      "source": "node-traefik",
+      "target": "node-langfuse",
+      "label": "Route langfuse.plotkai.in",
+      "animated": true,
+      "style": {
+        "stroke": "#10b981",
+        "strokeWidth": 2
+      },
+      "data": {
+        "id": "edge-traefik-langfuse",
+        "protocol": "REST / HTTPS",
+        "latency": "< 1 ms",
+        "payloadType": "Tracing Dashboard Route",
+        "payloadSample": "GET / HTTP/1.1\nHost: langfuse.plotkai.in\nUpstream: langfuse-web:3000",
+        "authRequired": true,
+        "bidirectional": true,
+        "description": "Traefik routes telemetry visualization requests for langfuse.plotkai.in to Langfuse frontend pods."
+      }
+    },
+    {
+      "id": "edge-traefik-netdata",
+      "source": "node-traefik",
+      "target": "node-netdata",
+      "label": "Route netdata.plotkai.in",
+      "animated": true,
+      "style": {
+        "stroke": "#10b981",
+        "strokeWidth": 2
+      },
+      "data": {
+        "id": "edge-traefik-netdata",
+        "protocol": "REST / HTTPS",
+        "latency": "< 1 ms",
+        "payloadType": "Telemetry Dashboard Route",
+        "payloadSample": "GET / HTTP/1.1\nHost: netdata.plotkai.in\nUpstream: netdata:19999",
+        "authRequired": false,
+        "bidirectional": true,
+        "description": "Traefik proxies real-time system metrics traffic for netdata.plotkai.in to the Netdata telemetry agent."
+      }
+    },
+    {
+      "id": "edge-traefik-argocd",
+      "source": "node-traefik",
+      "target": "node-argocd",
+      "label": "Route argocd.plotkai.in",
+      "animated": true,
+      "style": {
+        "stroke": "#10b981",
+        "strokeWidth": 2
+      },
+      "data": {
+        "id": "edge-traefik-argocd",
+        "protocol": "REST / HTTPS",
+        "latency": "< 1 ms",
+        "payloadType": "GitOps Ingress Route",
+        "payloadSample": "GET / HTTP/1.1\nHost: argocd.plotkai.in\nUpstream: argocd-server:80",
+        "authRequired": true,
+        "bidirectional": true,
+        "description": "Traefik forwards GitOps UI and webhook traffic for argocd.plotkai.in to the Argo CD server."
+      }
+    },
+    {
+      "id": "edge-nextchat-litellm",
+      "source": "node-nextchat",
+      "target": "node-litellm",
+      "label": "Chat Request & SSE Stream",
+      "animated": true,
+      "style": {
+        "stroke": "#10b981",
+        "strokeWidth": 2
+      },
+      "data": {
+        "id": "edge-nextchat-litellm",
+        "protocol": "REST / HTTPS",
+        "latency": "25 ms",
+        "payloadType": "OpenAI /v1/chat/completions",
+        "payloadSample": "{\"model\":\"qwen-2.5-3b-instruct\",\"messages\":[{\"role\":\"user\",\"content\":\"Explain Kubernetes pods\"}],\"stream\":true}",
+        "authRequired": true,
+        "rateLimit": "60 req/min per key",
+        "bidirectional": true,
+        "description": "NextChat streams prompt payloads to LiteLLM Gateway and receives Server-Sent Events (SSE) token chunks in real time."
+      }
+    },
+    {
+      "id": "edge-litellm-qwen",
+      "source": "node-litellm",
+      "target": "node-qwen",
+      "label": "vLLM Inference Route",
+      "animated": true,
+      "style": {
+        "stroke": "#10b981",
+        "strokeWidth": 2
+      },
+      "data": {
+        "id": "edge-litellm-qwen",
+        "protocol": "REST / HTTPS",
+        "latency": "2.1 ms",
+        "payloadType": "In-Cluster Model Inference",
+        "payloadSample": "{\"prompt\":\"<|im_start|>user\\nExplain Kubernetes pods<|im_end|>\\n<|im_start|>assistant\\n\",\"max_tokens\":512,\"temperature\":0.7}",
+        "authRequired": false,
+        "rateLimit": "Internal Cluster Network",
+        "bidirectional": true,
+        "description": "LiteLLM resolves the model alias and proxies the token generation request directly to the Qwen 2.5 3B inference engine pod."
+      }
+    },
+    {
+      "id": "edge-litellm-langfuse",
+      "source": "node-litellm",
+      "target": "node-langfuse",
+      "label": "Async Tracing & Metrics",
+      "animated": true,
+      "style": {
+        "stroke": "#10b981",
+        "strokeWidth": 2
+      },
+      "data": {
+        "id": "edge-litellm-langfuse",
+        "protocol": "REST / HTTPS",
+        "latency": "1.2 ms",
+        "payloadType": "OpenTelemetry Trace Ingestion",
+        "payloadSample": "{\"traceId\":\"trc_8492019\",\"name\":\"qwen2.5-3b-chat\",\"input\":\"Explain Kubernetes pods\",\"outputTokens\":142,\"duration\":1.82}",
+        "authRequired": true,
+        "rateLimit": "Unmetered Internal",
+        "bidirectional": false,
+        "description": "LiteLLM automatically triggers callback hooks to send trace data, token counts, and generation timestamps to Langfuse asynchronously."
+      }
+    },
+    {
+      "id": "edge-local-pc-github",
+      "source": "node-local-pc",
+      "target": "node-github",
+      "label": "Git Push (Manifests)",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-local-pc-github",
+        "protocol": "TCP / TLS",
+        "latency": "~150 ms",
+        "payloadType": "Git Commit Object",
+        "payloadSample": "commit e8b321a (HEAD -> main)\nAuthor: Utkarsh <utkarsh@plotkai.in>\nDate: Sat Sep 19 01:00:00 2026\n\nfeat(k8s): update Qwen vLLM batch limits, Traefik routes & LiteLLM config",
+        "authRequired": true,
+        "bidirectional": false,
+        "description": "Developer workstation pushes Kubernetes YAML manifests, Helm values, and configuration updates to the GitHub source repository."
+      }
+    },
+    {
+      "id": "edge-github-argocd",
+      "source": "node-github",
+      "target": "node-argocd",
+      "label": "GitOps Sync Webhook",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-github-argocd",
+        "protocol": "REST / HTTPS",
+        "latency": "< 80 ms",
+        "payloadType": "GitHub Webhook JSON",
+        "payloadSample": "{\n  \"ref\": \"refs/heads/main\",\n  \"event\": \"push\",\n  \"head_commit\": {\n    \"id\": \"e8b321a\",\n    \"message\": \"feat(k8s): update Qwen vLLM batch limits & LiteLLM routing rules\"\n  }\n}",
+        "authRequired": true,
+        "bidirectional": false,
+        "description": "GitHub dispatches a push webhook event to Argo CD inside the Kubernetes cluster, triggering immediate reconciliation."
+      }
+    },
+    {
+      "id": "edge-argocd-traefik",
+      "source": "node-argocd",
+      "target": "node-traefik",
+      "label": "Deploy Traefik Ingress",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-argocd-traefik",
+        "protocol": "REST / HTTPS",
+        "latency": "1.5 ms",
+        "payloadType": "K8s IngressRoute & Helm Sync",
+        "payloadSample": "kubectl apply -f manifests/traefik-ingress.yaml",
+        "authRequired": true,
+        "bidirectional": false,
+        "description": "Argo CD provisions Traefik Helm releases, Custom Resource Definitions (CRDs), and IngressRoute configurations."
+      }
+    },
+    {
+      "id": "edge-argocd-cloudflared",
+      "source": "node-argocd",
+      "target": "node-cloudflared",
+      "label": "Deploy Cloudflared Pod",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-argocd-cloudflared",
+        "protocol": "REST / HTTPS",
+        "latency": "1.4 ms",
+        "payloadType": "K8s Deployment & Secret Sync",
+        "payloadSample": "kubectl apply -f manifests/cloudflared-deployment.yaml",
+        "authRequired": true,
+        "bidirectional": false,
+        "description": "Argo CD deploys and manages cloudflared tunnel credentials, replica counts, and pod lifecycles."
+      }
+    },
+    {
+      "id": "edge-argocd-litellm",
+      "source": "node-argocd",
+      "target": "node-litellm",
+      "label": "Deploy LiteLLM Gateway",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-argocd-litellm",
+        "protocol": "REST / HTTPS",
+        "latency": "1.6 ms",
+        "payloadType": "K8s Deployment & ConfigMap Sync",
+        "payloadSample": "kubectl apply -f manifests/litellm-gateway.yaml",
+        "authRequired": true,
+        "bidirectional": false,
+        "description": "Argo CD synchronizes LiteLLM Gateway Deployment, ConfigMap model list, and Horizontal Pod Autoscaler."
+      }
+    },
+    {
+      "id": "edge-argocd-qwen",
+      "source": "node-argocd",
+      "target": "node-qwen",
+      "label": "Deploy Qwen vLLM Pod",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-argocd-qwen",
+        "protocol": "REST / HTTPS",
+        "latency": "2.2 ms",
+        "payloadType": "K8s GPU Pod Spec Sync",
+        "payloadSample": "kubectl apply -f manifests/qwen-inference.yaml",
+        "authRequired": true,
+        "bidirectional": false,
+        "description": "Argo CD provisions GPU limits, CUDA runtime arguments, and vLLM model server specifications on Kubernetes."
+      }
+    },
+    {
+      "id": "edge-argocd-nextchat",
+      "source": "node-argocd",
+      "target": "node-nextchat",
+      "label": "Deploy NextChat UI",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-argocd-nextchat",
+        "protocol": "REST / HTTPS",
+        "latency": "1.8 ms",
+        "payloadType": "K8s Deployment Sync",
+        "payloadSample": "kubectl apply -f manifests/nextchat-ui.yaml",
+        "authRequired": true,
+        "bidirectional": false,
+        "description": "Argo CD synchronizes NextChat UI Deployment, Service, and Ingress routing rules in Kubernetes."
+      }
+    },
+    {
+      "id": "edge-argocd-headlamp",
+      "source": "node-argocd",
+      "target": "node-headlamp",
+      "label": "Deploy Headlamp Dashboard",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-argocd-headlamp",
+        "protocol": "REST / HTTPS",
+        "latency": "1.6 ms",
+        "payloadType": "K8s Dashboard Sync",
+        "payloadSample": "kubectl apply -f manifests/headlamp.yaml",
+        "authRequired": true,
+        "bidirectional": false,
+        "description": "Argo CD deploys Headlamp dashboard pods, ServiceAccount RBAC roles, and ingress mappings."
+      }
+    },
+    {
+      "id": "edge-argocd-postgres",
+      "source": "node-argocd",
+      "target": "node-postgres-db",
+      "label": "Deploy DB StatefulSet",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-argocd-postgres",
+        "protocol": "REST / HTTPS",
+        "latency": "1.9 ms",
+        "payloadType": "K8s StatefulSet & PVC Sync",
+        "payloadSample": "kubectl apply -f manifests/postgres-statefulset.yaml",
+        "authRequired": true,
+        "bidirectional": false,
+        "description": "Argo CD manages the PostgreSQL and Redis persistent volumes, stateful replicas, and secrets."
+      }
+    },
+    {
+      "id": "edge-argocd-langfuse",
+      "source": "node-argocd",
+      "target": "node-langfuse",
+      "label": "Deploy Langfuse Stack",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-argocd-langfuse",
+        "protocol": "REST / HTTPS",
+        "latency": "1.7 ms",
+        "payloadType": "K8s Deployment Sync",
+        "payloadSample": "kubectl apply -f manifests/langfuse-tracing.yaml",
+        "authRequired": true,
+        "bidirectional": false,
+        "description": "Argo CD deploys Langfuse web frontend, trace receiver worker pods, and database connections."
+      }
+    },
+    {
+      "id": "edge-argocd-netdata",
+      "source": "node-argocd",
+      "target": "node-netdata",
+      "label": "Deploy Netdata DaemonSet",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-argocd-netdata",
+        "protocol": "REST / HTTPS",
+        "latency": "1.5 ms",
+        "payloadType": "K8s DaemonSet Sync",
+        "payloadSample": "kubectl apply -f manifests/netdata-daemonset.yaml",
+        "authRequired": true,
+        "bidirectional": false,
+        "description": "Argo CD deploys and upgrades the Netdata telemetry DaemonSet across all Kubernetes cluster nodes."
+      }
+    },
+    {
+      "id": "edge-litellm-postgres",
+      "source": "node-litellm",
+      "target": "node-postgres-db",
+      "label": "Key Auth & Quota Check",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-litellm-postgres",
+        "protocol": "SQL",
+        "latency": "1.4 ms",
+        "payloadType": "Database Query",
+        "payloadSample": "SELECT * FROM litellm_apikeys WHERE key_hash = 'sk-...' AND active = true;",
+        "authRequired": true,
+        "rateLimit": "Internal Pool",
+        "bidirectional": true,
+        "description": "LiteLLM validates the client's bearer token, checks remaining budget/quota, and increments usage logs in PostgreSQL."
+      }
+    },
+    {
+      "id": "edge-langfuse-postgres",
+      "source": "node-langfuse",
+      "target": "node-postgres-db",
+      "label": "Trace & Log Storage",
+      "animated": false,
+      "style": {
+        "stroke": "#64748b",
+        "strokeWidth": 1.5
+      },
+      "data": {
+        "id": "edge-langfuse-postgres",
+        "protocol": "SQL",
+        "latency": "2.0 ms",
+        "payloadType": "Batch Telemetry Insert",
+        "payloadSample": "INSERT INTO traces (id, timestamp, model, latency_ms) VALUES ('trc_8492019', NOW(), 'qwen-2.5-3b', 1820);",
+        "authRequired": true,
+        "rateLimit": "Internal Pool",
+        "bidirectional": true,
+        "description": "Langfuse flushes trace batches, evaluation logs, and user session records into the database backend."
+      }
+    }
+  ],
+  "simulationFlow": [
+    {
+      "step": 1,
+      "title": "Developer Commits GitOps Manifests on Local PC",
+      "description": "The engineer edits LLM parameters, LiteLLM route configs, and Kubernetes manifests on their local development workstation, pushing a signed commit to the GitHub repository.",
+      "activeNodeIds": [
+        "node-local-pc",
+        "node-github"
+      ],
+      "activeEdgeIds": [
+        "edge-local-pc-github"
+      ],
+      "payload": {
+        "action": "Git Push Manifests",
+        "protocol": "TCP / TLS (SSH)",
+        "sample": {
+          "commit": "e8b321a",
+          "author": "utkarsh@plotkai.in",
+          "files_changed": [
+            "k8s/litellm.yaml",
+            "k8s/qwen-inference.yaml",
+            "k8s/traefik.yaml"
+          ]
+        }
+      },
+      "durationMs": 2800,
+      "latencyExpectation": "~150 ms"
+    },
+    {
+      "step": 2,
+      "title": "GitHub Webhook Triggers Argo CD Reconciliation inside Cluster",
+      "description": "GitHub dispatches a webhook to Argo CD inside the Kubernetes container boundary. Argo CD detects configuration changes between GitHub main and live cluster state.",
+      "activeNodeIds": [
+        "node-github",
+        "node-argocd",
+        "node-k8s-cluster"
+      ],
+      "activeEdgeIds": [
+        "edge-github-argocd"
+      ],
+      "payload": {
+        "action": "GitOps State Reconciliation",
+        "protocol": "REST / HTTPS + gRPC",
+        "sample": {
+          "status": "OutOfSync -> Synced",
+          "reconciled_resources": [
+            "Deployment/cloudflared",
+            "HelmRelease/traefik",
+            "Deployment/qwen-inference",
+            "Deployment/litellm-gateway",
+            "Deployment/nextchat-ui",
+            "Deployment/headlamp",
+            "DaemonSet/netdata"
+          ]
+        }
+      },
+      "durationMs": 3000,
+      "latencyExpectation": "< 2.5s GitOps Sync"
+    },
+    {
+      "step": 3,
+      "title": "Argo CD Synchronizes Workloads across Cluster Pods",
+      "description": "Argo CD coordinates rolling updates across in-cluster workloads: Cloudflared Tunnel, Traefik Ingress, NextChat UI, Headlamp, LiteLLM Gateway, Qwen Inference, PostgreSQL, Langfuse, and Netdata.",
+      "activeNodeIds": [
+        "node-k8s-cluster",
+        "node-argocd",
+        "node-cloudflared",
+        "node-traefik",
+        "node-nextchat",
+        "node-headlamp",
+        "node-litellm",
+        "node-qwen",
+        "node-postgres-db",
+        "node-langfuse",
+        "node-netdata"
+      ],
+      "activeEdgeIds": [
+        "edge-argocd-cloudflared",
+        "edge-argocd-traefik",
+        "edge-argocd-nextchat",
+        "edge-argocd-headlamp",
+        "edge-argocd-litellm",
+        "edge-argocd-qwen",
+        "edge-argocd-postgres",
+        "edge-argocd-langfuse",
+        "edge-argocd-netdata"
+      ],
+      "payload": {
+        "action": "Cluster Workload Rollout",
+        "protocol": "Kubernetes API / GitOps",
+        "sample": {
+          "workloads": "9/9 Healthy & Synced",
+          "namespace": "llm-platform"
+        }
+      },
+      "durationMs": 3200,
+      "latencyExpectation": "< 3s Rollout"
+    },
+    {
+      "step": 4,
+      "title": "User Resolves DNS & Accesses NextChat via Cloudflare & Traefik",
+      "description": "User client requests chat.plotkai.in. Cloudflare Portal resolves DNS and forwards traffic through Cloudflared Tunnel into Traefik Ingress Controller, which routes directly to NextChat UI.",
+      "activeNodeIds": [
+        "node-user-client",
+        "node-cloudflare-portal",
+        "node-cloudflared",
+        "node-traefik",
+        "node-nextchat"
+      ],
+      "activeEdgeIds": [
+        "edge-user-cloudflare",
+        "edge-cloudflare-cloudflared",
+        "edge-cloudflared-traefik",
+        "edge-traefik-nextchat"
+      ],
+      "payload": {
+        "action": "Zero Trust Ingress Routing",
+        "protocol": "HTTPS -> QUIC Tunnel -> Traefik",
+        "sample": {
+          "domain": "chat.plotkai.in",
+          "tls": "TLS 1.3",
+          "ingress_target": "nextchat-service.llm-platform.svc:3000"
+        }
+      },
+      "durationMs": 3200,
+      "latencyExpectation": "< 30 ms Ingress Handshake"
+    },
+    {
+      "step": 5,
+      "title": "NextChat UI Dispatches Completion Request to LiteLLM Gateway",
+      "description": "User submits prompt in NextChat UI. NextChat constructs an OpenAI-compatible /v1/chat/completions payload and streams it to LiteLLM Gateway with streaming enabled.",
+      "activeNodeIds": [
+        "node-user-client",
+        "node-nextchat",
+        "node-litellm"
+      ],
+      "activeEdgeIds": [
+        "edge-nextchat-litellm"
+      ],
+      "payload": {
+        "action": "HTTP POST /v1/chat/completions",
+        "protocol": "REST / HTTPS (TLS 1.3)",
+        "sample": {
+          "model": "qwen-2.5-3b-instruct",
+          "messages": [
+            {
+              "role": "user",
+              "content": "Explain Kubernetes pods, Cloudflare Tunnels, and GitOps deployment"
+            }
+          ],
+          "stream": true,
+          "temperature": 0.7
+        }
+      },
+      "durationMs": 3000,
+      "latencyExpectation": "25 ms"
+    },
+    {
+      "step": 6,
+      "title": "LiteLLM Gateway Authenticates & Resolves Model Route",
+      "description": "LiteLLM Gateway at gateway.plotkai.in validates virtual keys against PostgreSQL, verifies token quotas, and proxies the prompt to the internal Qwen 2.5 3B inference service.",
+      "activeNodeIds": [
+        "node-litellm",
+        "node-postgres-db",
+        "node-qwen"
+      ],
+      "activeEdgeIds": [
+        "edge-litellm-postgres",
+        "edge-litellm-qwen"
+      ],
+      "payload": {
+        "action": "API Key Validation & Model Routing",
+        "protocol": "Internal HTTP Proxy",
+        "sample": {
+          "status": "authenticated",
+          "user": "tester@plotkai.in",
+          "upstream_target": "http://qwen-inference-service:8000/v1"
+        }
+      },
+      "durationMs": 3000,
+      "latencyExpectation": "4.5 ms"
+    },
+    {
+      "step": 7,
+      "title": "Qwen 2.5 3B Inference Engine Generates Tokens",
+      "description": "The Qwen 2.5 3B Instruct model generates tokens using KV caching and PagedAttention at ~120 tokens/second, streaming chunks back immediately.",
+      "activeNodeIds": [
+        "node-qwen"
+      ],
+      "activeEdgeIds": [
+        "edge-litellm-qwen"
+      ],
+      "payload": {
+        "action": "GPU / Tensor Inference",
+        "protocol": "Model Engine SSE",
+        "sample": {
+          "token_chunk": "A Kubernetes Pod is the smallest deployable unit...",
+          "finish_reason": null
+        }
+      },
+      "durationMs": 3500,
+      "latencyExpectation": "18 ms / token"
+    },
+    {
+      "step": 8,
+      "title": "NextChat UI Streams Response to User Client",
+      "description": "NextChat receives token chunks via Server-Sent Events (SSE) and streams them back through Traefik and Cloudflare to the user client browser for real-time markdown rendering.",
+      "activeNodeIds": [
+        "node-user-client",
+        "node-cloudflare-portal",
+        "node-cloudflared",
+        "node-traefik",
+        "node-nextchat",
+        "node-litellm"
+      ],
+      "activeEdgeIds": [
+        "edge-nextchat-litellm",
+        "edge-traefik-nextchat",
+        "edge-cloudflared-traefik",
+        "edge-cloudflare-cloudflared",
+        "edge-user-cloudflare"
+      ],
+      "payload": {
+        "action": "SSE Stream Delivery",
+        "protocol": "HTTP/2 Server-Sent Events",
+        "sample": {
+          "event": "message",
+          "data": "{\"choices\":[{\"delta\":{\"content\":\"unit of compute\"}}]}"
+        }
+      },
+      "durationMs": 3000,
+      "latencyExpectation": "< 20 ms"
+    },
+    {
+      "step": 9,
+      "title": "LiteLLM Emits Trace to Langfuse Observability",
+      "description": "Upon stream completion, LiteLLM triggers the Langfuse callback. Langfuse logs total token counts, latency breakdown, prompt text, and response text at langfuse.plotkai.in.",
+      "activeNodeIds": [
+        "node-litellm",
+        "node-langfuse",
+        "node-postgres-db"
+      ],
+      "activeEdgeIds": [
+        "edge-litellm-langfuse",
+        "edge-langfuse-postgres"
+      ],
+      "payload": {
+        "action": "Async LLM Tracing",
+        "protocol": "OpenTelemetry REST",
+        "sample": {
+          "trace_id": "trc_9381029",
+          "model": "qwen2.5-3b-instruct",
+          "prompt_tokens": 22,
+          "completion_tokens": 158,
+          "total_latency_ms": 1460
+        }
+      },
+      "durationMs": 3200,
+      "latencyExpectation": "12 ms async"
+    },
+    {
+      "step": 10,
+      "title": "Traefik Routes Telemetry & Dashboard Access to Netdata & Headlamp",
+      "description": "Admins and developers access Netdata per-second hardware telemetry and Headlamp Kubernetes visual dashboards through Traefik Ingress routes.",
+      "activeNodeIds": [
+        "node-traefik",
+        "node-netdata",
+        "node-headlamp"
+      ],
+      "activeEdgeIds": [
+        "edge-traefik-netdata",
+        "edge-traefik-headlamp"
+      ],
+      "payload": {
+        "action": "Dashboard Ingress Access",
+        "protocol": "HTTPS via Traefik",
+        "sample": {
+          "netdata_url": "https://netdata.plotkai.in",
+          "headlamp_url": "https://headlamp.plotkai.in",
+          "gpu_utilization": "88%",
+          "pod_status": "Running (1/1)"
+        }
+      },
+      "durationMs": 3200,
+      "latencyExpectation": "< 5 ms"
+    }
+  ],
+  "tradeoffs": [
+    {
+      "decision": "Zero Trust Ingress (Cloudflare Tunnels + Traefik) vs Public Cloud Load Balancer / NodePort",
+      "chosenApproach": "Cloudflare Tunnel daemon (cloudflared) inside cluster bridging to Traefik Ingress Controller",
+      "pros": [
+        "Eliminates public IP requirements and closes all inbound firewall ports (Zero Inbound Attack Surface)",
+        "Automated DDoS mitigation, edge caching, and WAF inspection through Cloudflare Edge",
+        "Traefik provides cloud-native HTTP/HTTPS routing, middleware, and dynamic pod discovery",
+        "Zero recurring cloud load balancer costs ($18-25/mo saved per LB)"
+      ],
+      "cons": [
+        "Requires maintaining cloudflared agent and Traefik IngressRoute CRDs in GitOps",
+        "Traffic depends on outbound internet connectivity to Cloudflare Anycast edge"
+      ],
+      "rejectedAlternatives": [
+        "Exposing NodePorts directly to the public internet (severe security vulnerability)",
+        "Provisioning individual public cloud LoadBalancers per service (expensive and complex firewall management)"
+      ]
+    },
+    {
+      "decision": "Cluster Management UI (Headlamp) vs Raw Kubectl CLI Only",
+      "chosenApproach": "Headlamp Kubernetes web dashboard deployed in-cluster with RBAC control",
+      "pros": [
+        "Intuitive visual overview of namespaces, pods, logs, and GPU resource limits for dev teams",
+        "Plugin ecosystem for custom CRDs and cluster health widgets at headlamp.plotkai.in",
+        "Enforces native Kubernetes ServiceAccount RBAC permissions without shared kubeconfigs"
+      ],
+      "cons": [
+        "Consumes minor cluster resources (~256MB RAM)",
+        "Requires secure ingress routing and authentication protection"
+      ],
+      "rejectedAlternatives": [
+        "Vanilla Kubernetes Dashboard (higher maintenance overhead, dated UI)",
+        "Distributing raw admin kubeconfig files to all team members (dangerous privilege escalation risk)"
+      ]
+    },
+    {
+      "decision": "GitOps Continuous Delivery (Argo CD + GitHub) vs Manual Kubectl / Helm Apply",
+      "chosenApproach": "Argo CD GitOps controller synchronizing from GitHub repository into Kubernetes",
+      "pros": [
+        "Eliminates manual kubectl errors and configuration drift across cluster environments",
+        "Audit trail of every manifest change stored immutably in Git commits",
+        "Automated self-healing reverts accidental or malicious unapproved cluster mutations",
+        "Visual rollout status, health checks, and one-click rollbacks via Argo CD UI"
+      ],
+      "cons": [
+        "Requires learning GitOps concepts and maintaining Argo CD controller instances",
+        "Minor propagation delay (~10-30s) when waiting for webhook/sync cycle"
+      ],
+      "rejectedAlternatives": [
+        "Direct manual `kubectl apply` from local developer machine (lacks version control, high risk of drift)",
+        "Ad-hoc shell scripts running in CI without reconciliation controller"
+      ]
+    },
+    {
+      "decision": "Inference Gateway Architecture",
+      "chosenApproach": "LiteLLM Proxy deployed as a centralized K8s service",
+      "pros": [
+        "Provides OpenAI-compatible API interface for seamless client compatibility",
+        "Native plug-and-play callbacks for Langfuse without altering client apps",
+        "Centralized virtual key generation, rate limiting, and team budgeting"
+      ],
+      "cons": [
+        "Adds an additional hop (approx. 4-5ms) in the network path",
+        "Requires maintaining a PostgreSQL database for stateful key storage"
+      ],
+      "rejectedAlternatives": [
+        "Connecting NextChat directly to the raw vLLM pod (lacks rate limits and observability hooks)",
+        "Custom reverse proxy written from scratch (high maintenance overhead)"
+      ]
+    },
+    {
+      "decision": "Model Selection & Quantization Strategy",
+      "chosenApproach": "Self-hosted Qwen 2.5 3B Instruct on Kubernetes",
+      "pros": [
+        "Exceptional reasoning and instruction-following quality relative to its compact 3B footprint",
+        "Runs comfortably on modest GPU (4-8GB VRAM) or multi-core CPU instances",
+        "Zero per-token API charges and 100% data privacy compliance"
+      ],
+      "cons": [
+        "Requires managing GPU node pools and cluster auto-scaling",
+        "Smaller context window retention compared to 70B+ parameter models"
+      ],
+      "rejectedAlternatives": [
+        "Proprietary cloud APIs like GPT-4o / Claude 3.5 (high ongoing token costs and data residency concerns)",
+        "Running unquantized 70B parameter models (requires expensive multi-GPU clusters)"
+      ]
+    },
+    {
+      "decision": "Monitoring & Observability Stack",
+      "chosenApproach": "Triple-plane architecture: Headlamp for K8s operations + Langfuse for LLM traces + Netdata for real-time infrastructure",
+      "pros": [
+        "Headlamp provides visual cluster management, pod logs, and workload statuses",
+        "Langfuse captures prompt semantics, token usage, latency percentiles, and evaluations",
+        "Netdata provides sub-second live hardware telemetry (VRAM, CPU, I/O) without sign-in friction",
+        "Decoupled operational layers allow debugging application vs infrastructure issues independently"
+      ],
+      "cons": [
+        "Three specialized web dashboards for cluster, LLM trace, and telemetry operations"
+      ],
+      "rejectedAlternatives": [
+        "Prometheus/Grafana only (misses prompt-level LLM execution traces and token semantics)",
+        "Langfuse only (lacks per-second hardware/GPU thermal and memory bandwidth metrics)"
+      ]
+    }
+  ],
+  "securityAndCompliance": [
+    {
+      "area": "Zero Inbound Attack Surface & Perimeter Defense",
+      "standard": "Cloudflare Zero Trust Tunnel & Anycast WAF",
+      "implementation": "All inbound traffic enters via Cloudflare Portal DNS and in-cluster Cloudflared Tunnels. No public cluster IP addresses or inbound firewall ports (80/443) are exposed to the internet."
+    },
+    {
+      "area": "Cluster Management & RBAC Control",
+      "standard": "Kubernetes RBAC & Headlamp Dashboard Isolation",
+      "implementation": "Headlamp dashboard operations are bounded by Kubernetes ServiceAccount RBAC policies, preventing unauthorized cluster escalation or namespace modifications."
+    },
+    {
+      "area": "GitOps Infrastructure Security",
+      "standard": "Immutable Git History & Signed Commits",
+      "implementation": "All deployment definitions are stored in GitHub with protected branch rules, required pull request reviews, and GPG commit signature validation before Argo CD reconciles changes."
+    },
+    {
+      "area": "Data Privacy & Residency",
+      "standard": "Zero Third-Party Egress / Air-Gapped Capable",
+      "implementation": "All user prompts and generated model tokens remain strictly confined within the Kubernetes cluster private network. No external API calls are made."
+    },
+    {
+      "area": "API Authentication & RBAC",
+      "standard": "Virtual Keys & Team-Scoped Quotas",
+      "implementation": "LiteLLM enforces hashed virtual API keys with granular token budgets, expiration timestamps, and per-user rate limits."
+    },
+    {
+      "area": "Transport Security",
+      "standard": "TLS 1.3 / Automated Ingress Certificates",
+      "implementation": "All public ingress endpoints (chat.plotkai.in, gateway.plotkai.in, langfuse.plotkai.in, netdata.plotkai.in, headlamp.plotkai.in, argocd.plotkai.in) are secured via cert-manager and Traefik Let's Encrypt TLS certificates."
+    },
+    {
+      "area": "Observability Access Controls",
+      "standard": "Role-Based Dashboard Authentication",
+      "implementation": "LiteLLM and Langfuse dashboards enforce authenticated credentials (tester@plotkai.in / Tester@123456), while Netdata provides read-only telemetry exploration."
+    }
+  ]
+}

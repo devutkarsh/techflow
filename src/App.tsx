@@ -1,4 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  Activity, 
+  Zap, 
+  ShieldCheck, 
+  Share2, 
+  Check 
+} from 'lucide-react';
 import { getAllArchitectures } from './data/catalog';
 import type { ArchitectureNodeData } from './types/architecture';
 import { HeaderNav } from './components/layout/HeaderNav';
@@ -27,6 +34,7 @@ export const App: React.FC = () => {
 
   const [currentIndex, setCurrentIndex] = useState<number>(getInitialIndex);
   const [selectedNode, setSelectedNode] = useState<ArchitectureNodeData | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
   
   // Viewport & Simulation State
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -35,6 +43,13 @@ export const App: React.FC = () => {
   const [isSimPlaying, setIsSimPlaying] = useState(false);
 
   const currentArchitecture = architectures[currentIndex] || architectures[0];
+
+  const handleShareChapter = () => {
+    const chapterUrl = `${window.location.origin}/${currentArchitecture.slug}`;
+    navigator.clipboard.writeText(chapterUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
 
   // Reset simulation when switching architecture chapter
   const handleNavigateIndex = useCallback((newIndex: number) => {
@@ -52,7 +67,7 @@ export const App: React.FC = () => {
       if (window.location.pathname !== targetPath) {
         window.history.replaceState(null, '', targetPath);
       }
-      document.title = `${currentArchitecture.title} | TechFlow Architecture Book`;
+      document.title = `${currentArchitecture.title} | Interactive System Designs`;
     }
   }, [currentArchitecture]);
 
@@ -195,12 +210,72 @@ export const App: React.FC = () => {
           )}
         </div>
 
+        {/* Desktop Key Metrics HUD Row (Moved after Canvas in Desktop View) */}
+        {!isFullscreen && currentArchitecture.keyMetrics && (
+          <div className="desktop-metrics-hud-row">
+            <div className="desktop-metric-pill">
+              <Activity size={13} color="var(--neon-emerald)" />
+              <span className="metric-label-dim">Availability:</span>
+              <span className="metric-value-highlight" style={{ color: 'var(--neon-emerald)' }}>
+                {currentArchitecture.keyMetrics.availabilitySLA}
+              </span>
+            </div>
+
+            <div className="desktop-metric-pill">
+              <Zap size={13} color="var(--neon-cyan)" />
+              <span className="metric-label-dim">P99 Read:</span>
+              <span className="metric-value-highlight" style={{ color: 'var(--neon-cyan)' }}>
+                {currentArchitecture.keyMetrics.readLatencyP99}
+              </span>
+            </div>
+
+            <div className="desktop-metric-pill">
+              <Zap size={13} color="var(--neon-amber)" />
+              <span className="metric-label-dim">P99 Write:</span>
+              <span className="metric-value-highlight" style={{ color: 'var(--neon-amber)' }}>
+                {currentArchitecture.keyMetrics.writeLatencyP99}
+              </span>
+            </div>
+
+            <div className="desktop-metric-pill">
+              <ShieldCheck size={13} color="var(--neon-indigo)" />
+              <span className="metric-label-dim">Resilience:</span>
+              <span className="metric-value-highlight" style={{ color: 'var(--neon-indigo)' }}>
+                {currentArchitecture.keyMetrics.resilienceTier}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Deep Dive Architecture Documentation Tabs */}
         {!isFullscreen && (
           <ArchitectureDocs
             architecture={currentArchitecture}
             onSelectSimulationStep={handleSelectSimStep}
           />
+        )}
+
+        {/* Bottom Center Share Button for Desktop & Mobile View */}
+        {!isFullscreen && (
+          <div className="bottom-share-container">
+            <button
+              className="bottom-share-btn"
+              onClick={handleShareChapter}
+              title="Copy unique link to this chapter"
+            >
+              {copiedLink ? (
+                <>
+                  <Check size={15} color="var(--neon-emerald)" />
+                  <span style={{ color: 'var(--neon-emerald)' }}>Link Copied to Clipboard!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 size={15} />
+                  <span>Share Architecture</span>
+                </>
+              )}
+            </button>
+          </div>
         )}
       </div>
 

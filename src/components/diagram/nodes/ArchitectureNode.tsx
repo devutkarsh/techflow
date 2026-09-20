@@ -20,7 +20,13 @@ import {
   Key, 
   UploadCloud, 
   HelpCircle,
-  ExternalLink
+  Laptop,
+  GitBranch,
+  GitPullRequest,
+  Users,
+  Monitor,
+  RefreshCw,
+  Boxes
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ArchitectureNodeData, NodeCategory } from '../../../types/architecture';
@@ -42,10 +48,17 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Workflow,
   Smartphone,
   Key,
-  UploadCloud
+  UploadCloud,
+  Laptop,
+  GitBranch,
+  GitPullRequest,
+  Users,
+  Monitor,
+  RefreshCw,
+  Boxes
 };
 
-const CATEGORY_COLORS: Record<NodeCategory, { bg: string; iconBg: string }> = {
+const CATEGORY_COLORS: Record<NodeCategory, { bg: 'cat-gateway' | 'cat-compute' | 'cat-database' | 'cat-queue' | 'cat-cache' | 'cat-ai' | 'cat-storage' | 'cat-security' | 'cat-client' | 'cat-monitoring'; iconBg: string }> = {
   gateway: { bg: 'cat-gateway', iconBg: 'linear-gradient(135deg, #0284c7, #0ea5e9)' },
   compute: { bg: 'cat-compute', iconBg: 'linear-gradient(135deg, #059669, #10b981)' },
   database: { bg: 'cat-database', iconBg: 'linear-gradient(135deg, #4f46e5, #818cf8)' },
@@ -80,34 +93,28 @@ export const ArchitectureNodeComponent: React.FC<NodeProps> = memo(({ data, sele
       <Handle type="target" position={Position.Bottom} id="bottom-target" style={{ bottom: -5 }} />
       <Handle type="source" position={Position.Bottom} id="bottom-source" style={{ bottom: -5 }} />
 
-      {/* Header */}
-      <div className="node-header">
-        <div className="node-icon-box" style={{ background: categoryStyle.iconBg }}>
-          <IconComponent size={18} />
+      {/* 1. Top Center: Big Icon */}
+      <div className="node-top-icon-row">
+        <div className="node-icon-box-large" style={{ background: categoryStyle.iconBg }}>
+          <IconComponent size={22} />
         </div>
+      </div>
+
+      {/* 2. Middle Center: Title & URL */}
+      <div className="node-center-body">
+        <div className="node-title-center">{nodeData.label}</div>
+        {nodeData.url && (
+          <div className="node-url-text-center" title={nodeData.url}>
+            {nodeData.url.replace(/^https?:\/\//, '')}
+          </div>
+        )}
+      </div>
+
+      {/* 3. Bottom Center: Type Badge */}
+      <div className="node-bottom-badge-row">
         <span className={`node-category-pill ${categoryStyle.bg}`}>
           {nodeData.category}
         </span>
-      </div>
-
-      {/* Body */}
-      <div className="node-body">
-        <div className="node-title">{nodeData.label}</div>
-
-        {/* Clickable External URL Link */}
-        {nodeData.url && (
-          <a
-            href={nodeData.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="node-external-link-btn"
-            onClick={(e) => e.stopPropagation()}
-            title={`Open ${nodeData.url}`}
-          >
-            <ExternalLink size={11} />
-            <span>{nodeData.url.replace(/^https?:\/\//, '')}</span>
-          </a>
-        )}
       </div>
     </div>
   );

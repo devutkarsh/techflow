@@ -22,10 +22,12 @@ import {
 } from 'lucide-react';
 import type { ArchitectureItem, ArchitectureNodeData } from '../../types/architecture';
 import { ArchitectureNodeComponent } from './nodes/ArchitectureNode';
+import { ContainerNodeComponent } from './nodes/ContainerNode';
 import { ArchitectureEdgeComponent } from './edges/ArchitectureEdge';
 
 const nodeTypes = {
   architectureNode: ArchitectureNodeComponent,
+  containerNode: ContainerNodeComponent,
 };
 
 const edgeTypes = {
@@ -41,7 +43,7 @@ interface DiagramCanvasProps {
   onToggleFullscreen: () => void;
 }
 
-// Dagre Auto-layout calculation
+// Dagre Auto-layout calculation with smart ContainerNode bounding-box wrapping and relative child coordinates
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -49,32 +51,184 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
   const isHorizontal = direction === 'LR';
   dagreGraph.setGraph({ 
     rankdir: direction, 
-    nodesep: isHorizontal ? 60 : 80, 
-    ranksep: isHorizontal ? 120 : 100 
+    nodesep: isHorizontal ? 60 : 70, 
+    ranksep: isHorizontal ? 120 : 100,
   });
 
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: 290, height: 190 });
+  // Separate container nodes from regular workload nodes
+  const containerNodes = nodes.filter(
+    (n) => n.type === 'containerNode' || (n.data as unknown as ArchitectureNodeData)?.isContainer
+  );
+  const regularNodes = nodes.filter(
+    (n) => n.type !== 'containerNode' && !(n.data as unknown as ArchitectureNodeData)?.isContainer
+  );
+  const containerIds = new Set(containerNodes.map((c) => c.id));
+
+  // Build parent-to-child and child-to-parent mapping
+  const childToParentMap = new Map<string, string>();
+  containerNodes.forEach((container) => {
+    const containerData = container.data as unknown as ArchitectureNodeData;
+    let childIds: string[] = 
+      (container as unknown as { childNodes?: string[] }).childNodes ||
+      containerData?.childNodes ||
+      [];
+
+    if (childIds.length === 0) {
+      childIds = nodes
+        .filter((n) => (n.data as unknown as { parentId?: string })?.parentId === container.id || (n as unknown as { parentId?: string })?.parentId === container.id)
+        .map((n) => n.id);
+    }
+
+    childIds.forEach((cId) => {
+      childToParentMap.set(cId, container.id);
+    });
   });
 
+  // 1. Add all regular nodes to dagre
+  regularNodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: 220, height: 160 });
+  });
+
+  // 2. Add edges between regular nodes to dagre (skip edges attached to container itself)
   edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
+    if (!containerIds.has(edge.source) && !containerIds.has(edge.target)) {
+      dagreGraph.setEdge(edge.source, edge.target);
+    }
   });
 
   dagre.layout(dagreGraph);
 
-  const newNodes = nodes.map((node) => {
+  // 3. Compute global positions for regular nodes from dagre output
+  const globalPositionMap = new Map<string, { x: number; y: number }>();
+  regularNodes.forEach((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
+    if (nodeWithPosition) {
+      globalPositionMap.set(node.id, {
+        x: nodeWithPosition.x - 110,
+        y: nodeWithPosition.y - 80,
+      });
+    }
+  });
+
+  // 4. Calculate bounding boxes and positions for container nodes
+  const containerPositionsMap = new Map<string, { x: number; y: number; width: number; height: number; childIds: string[] }>();
+
+  const positionedContainerNodes = containerNodes.map((container) => {
+    const containerData = container.data as unknown as ArchitectureNodeData;
+    let childIds: string[] = 
+      (container as unknown as { childNodes?: string[] }).childNodes ||
+      containerData?.childNodes ||
+      [];
+
+    if (childIds.length === 0) {
+      childIds = nodes
+        .filter((n) => (n.data as unknown as { parentId?: string })?.parentId === container.id || (n as unknown as { parentId?: string })?.parentId === container.id)
+        .map((n) => n.id);
+    }
+
+    // Find global positions of child nodes that belong to this container
+    const childPositions = childIds
+      .map((id) => globalPositionMap.get(id))
+      .filter((pos): pos is { x: number; y: number } => pos !== undefined);
+
+    if (childPositions.length > 0) {
+      const minX = Math.min(...childPositions.map((p) => p.x));
+      const maxX = Math.max(...childPositions.map((p) => p.x + 220));
+      const minY = Math.min(...childPositions.map((p) => p.y));
+      const maxY = Math.max(...childPositions.map((p) => p.y + 160));
+
+      const paddingLeft = 45;
+      const paddingRight = 45;
+      const paddingTop = 85; // Space for the container header bar
+      const paddingBottom = 45;
+
+      const width = (maxX - minX) + paddingLeft + paddingRight;
+      const height = (maxY - minY) + paddingTop + paddingBottom;
+
+      const containerX = minX - paddingLeft;
+      const containerY = minY - paddingTop;
+
+      containerPositionsMap.set(container.id, {
+        x: containerX,
+        y: containerY,
+        width,
+        height,
+        childIds,
+      });
+
+      return {
+        ...container,
+        position: {
+          x: containerX,
+          y: containerY,
+        },
+        style: {
+          ...container.style,
+          width,
+          height,
+          zIndex: -1,
+        },
+        data: {
+          ...containerData,
+          width,
+          height,
+          childNodes: childIds,
+        },
+      };
+    }
+
+    // Fallback if no child nodes found
     return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x - 145,
-        y: nodeWithPosition.y - 95,
+      ...container,
+      style: {
+        ...container.style,
+        width: typeof container.style?.width === 'number' ? container.style.width : 920,
+        height: typeof container.style?.height === 'number' ? container.style.height : 620,
+        zIndex: -1,
       },
     };
   });
 
-  return { nodes: newNodes, edges };
+  // 5. Position regular nodes (relative to parent container if inside a container)
+  const positionedRegularNodes = regularNodes.map((node) => {
+    const globalPos = globalPositionMap.get(node.id) || { x: 0, y: 0 };
+    const parentId = childToParentMap.get(node.id);
+
+    if (parentId && containerPositionsMap.has(parentId)) {
+      const parentContainer = containerPositionsMap.get(parentId)!;
+      // Convert to relative coordinates inside the parent container
+      const relativeX = globalPos.x - parentContainer.x;
+      const relativeY = globalPos.y - parentContainer.y;
+
+      return {
+        ...node,
+        parentId,
+        extent: 'parent' as const,
+        position: {
+          x: relativeX,
+          y: relativeY,
+        },
+        data: {
+          ...node.data,
+          parentId,
+        },
+      };
+    }
+
+    return {
+      ...node,
+      position: {
+        x: globalPos.x,
+        y: globalPos.y,
+      },
+    };
+  });
+
+  // Container nodes sorted first so they render underneath child nodes
+  return { 
+    nodes: [...positionedContainerNodes, ...positionedRegularNodes], 
+    edges 
+  };
 };
 
 const FlowInner: React.FC<DiagramCanvasProps> = ({
@@ -97,14 +251,54 @@ const FlowInner: React.FC<DiagramCanvasProps> = ({
 
   // Transform architecture.nodes to ReactFlow nodes
   const initialNodes: Node[] = useMemo(() => {
-    return architecture.nodes.map((n) => {
+    // Collect child-to-parent mapping from architecture nodes
+    const childToParentMap = new Map<string, string>();
+    architecture.nodes.forEach((n) => {
+      const isContainer = n.type === 'containerNode' || n.data?.isContainer;
+      if (isContainer) {
+        const cIds = n.childNodes || n.data?.childNodes || [];
+        cIds.forEach((cId) => childToParentMap.set(cId, n.id));
+      }
+      if (n.parentId || n.parentNode) {
+        childToParentMap.set(n.id, (n.parentId || n.parentNode)!);
+      }
+    });
+
+    // Sort so container nodes come first in the ReactFlow array hierarchy
+    const sorted = [...architecture.nodes].sort((a, b) => {
+      const aIsContainer = a.type === 'containerNode' || a.data?.isContainer;
+      const bIsContainer = b.type === 'containerNode' || b.data?.isContainer;
+      if (aIsContainer && !bIsContainer) return -1;
+      if (!aIsContainer && bIsContainer) return 1;
+      return 0;
+    });
+
+    return sorted.map((n) => {
       const isNodeActive = activeStep?.activeNodeIds.includes(n.id) ?? false;
+      const isContainer = n.type === 'containerNode' || n.data?.isContainer;
+      const childNodes = n.childNodes || n.data?.childNodes || [];
+      const parentId = childToParentMap.get(n.id);
+      
+      const nodeStyle: React.CSSProperties = {
+        ...(n.width ? { width: n.width } : {}),
+        ...(n.height ? { height: n.height } : {}),
+        ...(isContainer ? { zIndex: -1 } : {}),
+        ...n.style,
+      };
+
       return {
         id: n.id,
-        type: 'architectureNode',
+        type: isContainer ? 'containerNode' : (n.type || 'architectureNode'),
         position: n.position || { x: 0, y: 0 },
+        ...(parentId ? { parentId, extent: 'parent' as const } : {}),
+        style: Object.keys(nodeStyle).length > 0 ? nodeStyle : undefined,
         data: {
           ...n.data,
+          isContainer,
+          childNodes,
+          width: n.width,
+          height: n.height,
+          parentId,
           activeInSimulation: isNodeActive,
         },
       };
@@ -169,7 +363,7 @@ const FlowInner: React.FC<DiagramCanvasProps> = ({
   );
 
   return (
-    <div className="diagram-canvas-container" style={{ height: isFullscreen ? '100vh' : '580px' }}>
+    <div className="diagram-canvas-container" style={{ height: isFullscreen ? '100vh' : '435px' }}>
       {/* Top Floating Controls */}
       <div className="canvas-floating-controls">
         <button

@@ -51,12 +51,21 @@ export interface ArchitectureNodeData {
   highlighted?: boolean;
   activeInSimulation?: boolean;
   pulse?: boolean;
+  isContainer?: boolean;
+  containerBadge?: string;
+  childNodes?: string[];
 }
 
 export interface ArchitectureNode {
   id: string;
-  type?: string;
+  type?: 'architectureNode' | 'containerNode' | string;
   position: { x: number; y: number };
+  width?: number;
+  height?: number;
+  parentId?: string;
+  parentNode?: string;
+  childNodes?: string[];
+  style?: React.CSSProperties;
   data: ArchitectureNodeData;
 }
 

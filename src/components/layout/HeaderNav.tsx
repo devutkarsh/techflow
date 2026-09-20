@@ -12,10 +12,7 @@ import {
   Activity, 
   Zap, 
   ShieldCheck, 
-  Layers,
-  ListFilter,
-  Share2,
-  Check
+  ListFilter
 } from 'lucide-react';
 import type { ArchitectureItem } from '../../types/architecture';
 import { ChapterPickerModal } from './ChapterPickerModal';
@@ -37,16 +34,8 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 }) => {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showChapterPicker, setShowChapterPicker] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
   const currentArch = architectures[currentIndex] || architectures[0];
   const total = architectures.length;
-
-  const handleShareChapter = () => {
-    const chapterUrl = `${window.location.origin}/${currentArch.slug}`;
-    navigator.clipboard.writeText(chapterUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
 
   if (!currentArch) return null;
 
@@ -56,10 +45,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
     <header className="center-header-section">
       {/* 1. Top Heading at Center Top */}
       <div className="top-brand-heading">
-        <div className="brand-logo-glow">
-          <Layers size={18} />
-        </div>
-        <h1 className="brand-heading-text">TechFlow Architecture Book</h1>
+        <h1 className="brand-heading-text">Interactive System Designs</h1>
       </div>
 
       {/* 2. Chapter Stepper: Previous | Chapter X of Y (Clickable) | Next */}
@@ -95,10 +81,13 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
         </button>
       </div>
 
-      {/* 3. Title, Tags, Description, Author Block (Mobile & Desktop Responsive) */}
+      {/* 3. Title, Description, Tags, Author Block (Mobile & Desktop Responsive) */}
       <div className="architecture-meta-block">
         {/* Main Title (Placed right below chapter nav) */}
         <h2 className="architecture-center-title">{title}</h2>
+
+        {/* Description (Placed right below title) */}
+        <p className="architecture-center-desc">{subtitle}</p>
 
         {/* Tags & Meta Row (Category, Version, Reading Time, and Desktop Inline Author) */}
         <div className="meta-badges-row">
@@ -125,25 +114,6 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             </div>
           )}
 
-          {/* Share Chapter Link Button */}
-          <button
-            className="share-chapter-btn"
-            onClick={handleShareChapter}
-            title="Copy unique link to this chapter"
-          >
-            {copiedLink ? (
-              <>
-                <Check size={12} color="var(--neon-emerald)" />
-                <span style={{ color: 'var(--neon-emerald)' }}>Link Copied!</span>
-              </>
-            ) : (
-              <>
-                <Share2 size={12} />
-                <span>Share</span>
-              </>
-            )}
-          </button>
-
           {/* Mobile "More Info" Button (Inline with Category Tag on Mobile) */}
           <button
             className="mobile-info-trigger-btn"
@@ -154,46 +124,6 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             <span>More Info</span>
           </button>
         </div>
-
-        {/* Description (Hidden on mobile, shown in More Info modal) */}
-        <p className="architecture-center-desc">{subtitle}</p>
-
-        {/* Desktop Key Metrics Row */}
-        {keyMetrics && (
-          <div className="desktop-metrics-hud-row">
-            <div className="desktop-metric-pill">
-              <Activity size={13} color="var(--neon-emerald)" />
-              <span className="metric-label-dim">Availability:</span>
-              <span className="metric-value-highlight" style={{ color: 'var(--neon-emerald)' }}>
-                {keyMetrics.availabilitySLA}
-              </span>
-            </div>
-
-            <div className="desktop-metric-pill">
-              <Zap size={13} color="var(--neon-cyan)" />
-              <span className="metric-label-dim">P99 Read:</span>
-              <span className="metric-value-highlight" style={{ color: 'var(--neon-cyan)' }}>
-                {keyMetrics.readLatencyP99}
-              </span>
-            </div>
-
-            <div className="desktop-metric-pill">
-              <Zap size={13} color="var(--neon-amber)" />
-              <span className="metric-label-dim">P99 Write:</span>
-              <span className="metric-value-highlight" style={{ color: 'var(--neon-amber)' }}>
-                {keyMetrics.writeLatencyP99}
-              </span>
-            </div>
-
-            <div className="desktop-metric-pill">
-              <ShieldCheck size={13} color="var(--neon-indigo)" />
-              <span className="metric-label-dim">Resilience:</span>
-              <span className="metric-value-highlight" style={{ color: 'var(--neon-indigo)' }}>
-                {keyMetrics.resilienceTier}
-              </span>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 4. Action Buttons: Simulate & Expand */}
