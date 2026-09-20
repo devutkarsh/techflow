@@ -2,7 +2,7 @@
   "id": "arch-the-toolkit",
   "slug": "the-toolkit",
   "title": "The Toolkit",
-  "enabled": true,
+  "enabled": false,
   "subtitle": "Curated developer tooling, platform engineering utilities, continuous delivery consoles, and source infrastructure.",
   "category": "Developer Tooling & Platform",
   "version": "v1.0.0",
