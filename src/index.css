@@ -956,8 +956,7 @@ button {
   font-weight: 600;
   padding: 0.22rem 0.55rem;
   border-radius: var(--radius-full);
-  background: var(--bg-glass);
-  backdrop-filter: blur(8px);
+  background: #0d121f;
   color: var(--text-main);
   border: 1px solid var(--border-medium);
   box-shadow: var(--shadow-sm);
@@ -966,7 +965,7 @@ button {
   gap: 0.3rem;
   pointer-events: all;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .edge-protocol-pill:hover {

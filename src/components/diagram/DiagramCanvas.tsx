@@ -203,7 +203,10 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
       return {
         ...node,
         parentId,
-        extent: 'parent' as const,
+        width: 190,
+        height: 160,
+        initialWidth: 190,
+        initialHeight: 160,
         position: {
           x: relativeX,
           y: relativeY,
@@ -280,9 +283,12 @@ const FlowInner: React.FC<DiagramCanvasProps> = ({
       const childNodes = n.childNodes || n.data?.childNodes || [];
       const parentId = childToParentMap.get(n.id);
       
+      const nodeWidth = typeof n.width === 'number' ? n.width : (typeof n.style?.width === 'number' ? n.style.width : (isContainer ? 1780 : 190));
+      const nodeHeight = typeof n.height === 'number' ? n.height : (typeof n.style?.height === 'number' ? n.style.height : (isContainer ? 1040 : 160));
+
       const nodeStyle: React.CSSProperties = {
-        ...(n.width ? { width: n.width } : {}),
-        ...(n.height ? { height: n.height } : {}),
+        width: nodeWidth,
+        height: nodeHeight,
         ...(isContainer ? { zIndex: -1 } : {}),
         ...n.style,
       };
@@ -291,14 +297,18 @@ const FlowInner: React.FC<DiagramCanvasProps> = ({
         id: n.id,
         type: isContainer ? 'containerNode' : (n.type || 'architectureNode'),
         position: n.position || { x: 0, y: 0 },
-        ...(parentId ? { parentId, extent: 'parent' as const } : {}),
+        width: nodeWidth,
+        height: nodeHeight,
+        initialWidth: nodeWidth,
+        initialHeight: nodeHeight,
+        ...(parentId ? { parentId } : {}),
         style: Object.keys(nodeStyle).length > 0 ? nodeStyle : undefined,
         data: {
           ...n.data,
           isContainer,
           childNodes,
-          width: n.width,
-          height: n.height,
+          width: nodeWidth,
+          height: nodeHeight,
           parentId,
           activeInSimulation: isNodeActive,
         },

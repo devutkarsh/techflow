@@ -19,6 +19,17 @@ export const ArchitectureEdgeComponent: React.FC<EdgeProps> = memo(({
   data,
 }) => {
   const edgeData = data as unknown as ArchitectureEdgeData | undefined;
+
+  // Validate coordinates to prevent SVG rendering crashes if nodes are unmeasured
+  if (
+    typeof sourceX !== 'number' || isNaN(sourceX) ||
+    typeof sourceY !== 'number' || isNaN(sourceY) ||
+    typeof targetX !== 'number' || isNaN(targetX) ||
+    typeof targetY !== 'number' || isNaN(targetY)
+  ) {
+    return null;
+  }
+
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -34,8 +45,7 @@ export const ArchitectureEdgeComponent: React.FC<EdgeProps> = memo(({
     stroke: isActiveSim ? '#10b981' : (style.stroke || 'rgba(148, 163, 184, 0.4)'),
     strokeWidth: isActiveSim ? 3 : (style.strokeWidth || 1.8),
     strokeDasharray: isActiveSim ? '5,5' : undefined,
-    filter: isActiveSim ? 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.8))' : undefined,
-    transition: 'all 0.3s ease',
+    transition: 'stroke 0.2s ease, stroke-width 0.2s ease',
     ...style,
   };
 
