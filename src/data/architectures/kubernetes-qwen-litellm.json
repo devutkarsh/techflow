@@ -82,7 +82,7 @@
       "data": {
         "id": "node-k8s-cluster",
         "label": "Kubernetes Cluster (Parent Container)",
-        "subtitle": "k8s-cluster.plotkai.in — Dedicated GPU Inference & Microservice Mesh",
+        "subtitle": "k8s-cluster.devutkarsh.com — Dedicated GPU Inference & Microservice Mesh",
         "category": "compute",
         "iconName": "Layers",
         "isContainer": true,
@@ -146,7 +146,7 @@
         "subtitle": "dash.cloudflare.com — DNS & Edge",
         "url": "https://dash.cloudflare.com",
         "category": "gateway",
-        "description": "External Cloudflare edge network and authoritative DNS portal. Manages DNS records (A, CNAME, Tunnel) for *.plotkai.in, enforces WAF/DDoS security rules, and routes web traffic into the in-cluster Cloudflared Tunnel.",
+        "description": "External Cloudflare edge network and authoritative DNS portal. Manages DNS records (A, CNAME, Tunnel) for *.devutkarsh.com, enforces WAF/DDoS security rules, and routes web traffic into the in-cluster Cloudflared Tunnel.",
         "iconName": "Globe",
         "techStack": [
           "Cloudflare DNS",
@@ -176,7 +176,7 @@
         ],
         "configSnippet": {
           "language": "yaml",
-          "code": "# Cloudflare DNS & Tunnel configuration for plotkai.in\ntunnel: 6ff4b8e2-xxxx-xxxx-xxxx-xxxxxxxxxxxx\ncredentials-file: /etc/cloudflared/creds.json\ningress:\n  - hostname: chat.plotkai.in\n    service: http://traefik.traefik.svc.cluster.local:80\n  - hostname: gateway.plotkai.in\n    service: http://traefik.traefik.svc.cluster.local:80\n  - hostname: headlamp.plotkai.in\n    service: http://traefik.traefik.svc.cluster.local:80\n  - service: http_status:404"
+          "code": "# Cloudflare DNS & Tunnel configuration for devutkarsh.com\ntunnel: 6ff4b8e2-xxxx-xxxx-xxxx-xxxxxxxxxxxx\ncredentials-file: /etc/cloudflared/creds.json\ningress:\n  - hostname: chat.devutkarsh.com\n    service: http://traefik.traefik.svc.cluster.local:80\n  - hostname: gateway.devutkarsh.com\n    service: http://traefik.traefik.svc.cluster.local:80\n  - hostname: headlamp.devutkarsh.com\n    service: http://traefik.traefik.svc.cluster.local:80\n  - service: http_status:404"
         }
       }
     },
@@ -191,9 +191,9 @@
         "id": "node-user-client",
         "label": "User Client",
         "subtitle": "Web Browser & API Consumer",
-        "url": "https://chat.plotkai.in/#/",
+        "url": "https://chat.devutkarsh.com/#/",
         "category": "client",
-        "description": "External end-user workstation, browser, or mobile client. Connects via Cloudflare DNS & Tunnel to NextChat UI at chat.plotkai.in/#/ to submit prompts, manage conversational sessions, and stream real-time Qwen 2.5 AI completions.",
+        "description": "External end-user workstation, browser, or mobile client. Connects via Cloudflare DNS & Tunnel to NextChat UI at chat.devutkarsh.com/#/ to submit prompts, manage conversational sessions, and stream real-time Qwen 2.5 AI completions.",
         "iconName": "Users",
         "techStack": [
           "Web Browser (Chrome / Safari / Firefox)",
@@ -211,7 +211,7 @@
           "resourceAllocation": "Client Device"
         },
         "responsibilities": [
-          "Resolves chat.plotkai.in via Cloudflare DNS and routes through edge tunnel",
+          "Resolves chat.devutkarsh.com via Cloudflare DNS and routes through edge tunnel",
           "Transmits chat prompt requests via HTTPS to NextChat UI via Traefik",
           "Consumes streaming Server-Sent Events (SSE) token chunks with live markdown rendering",
           "Stores local conversation history and user persona templates"
@@ -222,7 +222,7 @@
         ],
         "configSnippet": {
           "language": "bash",
-          "code": "# Connect directly via browser or send OpenAI-compatible prompt:\ncurl -X POST https://chat.plotkai.in/api/openai/v1/chat/completions \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\": \"qwen-2.5-3b-instruct\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello Qwen!\"}], \"stream\": true}'"
+          "code": "# Connect directly via browser or send OpenAI-compatible prompt:\ncurl -X POST https://chat.devutkarsh.com/api/openai/v1/chat/completions \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\": \"qwen-2.5-3b-instruct\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello Qwen!\"}], \"stream\": true}'"
         }
       }
     },
@@ -374,10 +374,10 @@
       "data": {
         "id": "node-langfuse",
         "label": "Langfuse LLM Tracing",
-        "subtitle": "langfuse.plotkai.in",
-        "url": "https://langfuse.plotkai.in/",
+        "subtitle": "langfuse.devutkarsh.com",
+        "url": "https://langfuse.devutkarsh.com/",
         "category": "monitoring",
-        "description": "Child Kubernetes Deployment in namespace 'llm-platform'. Observability platform tracking traces, token consumption, and prompt revisions. Demo login: tester@plotkai.in / Tester@123456.",
+        "description": "Child Kubernetes Deployment in namespace 'llm-platform'. Observability platform tracking traces, token consumption, and prompt revisions. Demo login: tester@devutkarsh.com / Tester@123456.",
         "iconName": "Activity",
         "techStack": [
           "Langfuse",
@@ -399,7 +399,7 @@
           "Visualizes end-to-end user request traces and execution graphs",
           "Calculates token counts, generation latencies, and estimated cost savings",
           "Monitors model quality, output evaluations, and user feedback",
-          "Provides analytics dashboard and query console at langfuse.plotkai.in"
+          "Provides analytics dashboard and query console at langfuse.devutkarsh.com"
         ],
         "failureModes": [
           "Trace ingestion queue lag during burst workloads",
@@ -407,7 +407,7 @@
         ],
         "configSnippet": {
           "language": "yaml",
-          "code": "env:\n  - name: LANGFUSE_PUBLIC_KEY\n    value: \"pk-lf-prod-k8s-mesh\"\n  - name: LANGFUSE_SECRET_KEY\n    valueFrom:\n      secretKeyRef:\n        name: langfuse-secrets\n        key: secret-key\n  - name: LANGFUSE_HOST\n    value: \"https://langfuse.plotkai.in\""
+          "code": "env:\n  - name: LANGFUSE_PUBLIC_KEY\n    value: \"pk-lf-prod-k8s-mesh\"\n  - name: LANGFUSE_SECRET_KEY\n    valueFrom:\n      secretKeyRef:\n        name: langfuse-secrets\n        key: secret-key\n  - name: LANGFUSE_HOST\n    value: \"https://langfuse.devutkarsh.com\""
         }
       }
     },
@@ -422,8 +422,8 @@
       "data": {
         "id": "node-headlamp",
         "label": "Headlamp K8s Dashboard",
-        "subtitle": "headlamp.plotkai.in",
-        "url": "https://headlamp.plotkai.in",
+        "subtitle": "headlamp.devutkarsh.com",
+        "url": "https://headlamp.devutkarsh.com",
         "category": "monitoring",
         "description": "Child Kubernetes Deployment in namespace 'kube-system'. Modern, extensible web dashboard for visual cluster management, pod logs, CRD inspection, GPU allocation tracking, and RBAC-controlled operations.",
         "iconName": "Monitor",
@@ -447,7 +447,7 @@
           "Provides graphical visualization of all cluster nodes, namespaces, pods, and workloads",
           "Allows streaming container logs, events, and resource metrics directly in browser",
           "Enforces Kubernetes RBAC permissions for cluster operators and developers",
-          "Delivers plugin support for custom CRDs and cluster extensions at headlamp.plotkai.in"
+          "Delivers plugin support for custom CRDs and cluster extensions at headlamp.devutkarsh.com"
         ],
         "failureModes": [
           "API server rate limiting during heavy concurrent log streaming sessions",
@@ -515,8 +515,8 @@
       "data": {
         "id": "node-argocd",
         "label": "Argo CD Controller",
-        "subtitle": "argocd.plotkai.in",
-        "url": "https://argocd.plotkai.in",
+        "subtitle": "argocd.devutkarsh.com",
+        "url": "https://argocd.devutkarsh.com",
         "category": "gateway",
         "description": "Child Kubernetes GitOps continuous delivery controller in namespace 'argocd'. Monitors GitHub and synchronizes desired state across every Kubernetes pod, ingress route, and workload.",
         "iconName": "Workflow",
@@ -540,7 +540,7 @@
           "Continuously detects drift between Git desired state and live Kubernetes cluster state",
           "Applies automated, zero-downtime rolling updates to Traefik, NextChat, LiteLLM, Qwen, Netdata, and Postgres",
           "Provides self-healing to automatically revert unapproved manual cluster mutations",
-          "Visualizes resource sync status and deployment history at argocd.plotkai.in"
+          "Visualizes resource sync status and deployment history at argocd.devutkarsh.com"
         ],
         "failureModes": [
           "Out-of-sync cluster state caused by manual unmanaged kubectl interventions",
@@ -563,8 +563,8 @@
       "data": {
         "id": "node-netdata",
         "label": "Netdata Telemetry",
-        "subtitle": "netdata.plotkai.in",
-        "url": "https://netdata.plotkai.in/",
+        "subtitle": "netdata.devutkarsh.com",
+        "url": "https://netdata.devutkarsh.com/",
         "category": "monitoring",
         "description": "Child Kubernetes DaemonSet running across all cluster nodes in namespace 'monitoring'. Deployed by Argo CD and accessed via Traefik Ingress. Monitor GPU VRAM, CPU load, and network I/O in real time (Click 'Skip' / 'Explore without sign in' to view dashboard).",
         "iconName": "Radio",
@@ -588,7 +588,7 @@
           "Collects high-frequency 1-second interval hardware telemetry across cluster nodes",
           "Monitors GPU temperature, VRAM allocation, and CUDA compute saturation",
           "Tracks Kubernetes pod memory limits and CPU throttling",
-          "Exposes interactive real-time dashboard through Traefik at netdata.plotkai.in"
+          "Exposes interactive real-time dashboard through Traefik at netdata.devutkarsh.com"
         ],
         "failureModes": [
           "eBPF sensor permission constraints on restricted kernel nodes",
@@ -611,8 +611,8 @@
       "data": {
         "id": "node-traefik",
         "label": "Traefik Ingress Controller",
-        "subtitle": "traefik.plotkai.in",
-        "url": "https://traefik.plotkai.in",
+        "subtitle": "traefik.devutkarsh.com",
+        "url": "https://traefik.devutkarsh.com",
         "category": "gateway",
         "description": "Child Kubernetes Ingress Controller in namespace 'traefik'. Cloud-native reverse proxy routing HTTP/HTTPS traffic to internal microservices (NextChat, LiteLLM, Headlamp, Langfuse, Netdata, Argo CD) with TLS termination and middleware.",
         "iconName": "Shuffle",
@@ -644,7 +644,7 @@
         ],
         "configSnippet": {
           "language": "yaml",
-          "code": "apiVersion: traefik.io/v1alpha1\nkind: IngressRoute\nmetadata:\n  name: nextchat-ingress\n  namespace: llm-platform\nspec:\n  entryPoints:\n    - websecure\n  routes:\n  - match: Host(`chat.plotkai.in`)\n    kind: Rule\n    services:\n    - name: nextchat-service\n      port: 3000\n "
+          "code": "apiVersion: traefik.io/v1alpha1\nkind: IngressRoute\nmetadata:\n  name: nextchat-ingress\n  namespace: llm-platform\nspec:\n  entryPoints:\n    - websecure\n  routes:\n  - match: Host(`chat.devutkarsh.com`)\n    kind: Rule\n    services:\n    - name: nextchat-service\n      port: 3000\n "
         }
       }
     },
@@ -659,10 +659,10 @@
       "data": {
         "id": "node-nextchat",
         "label": "NextChat UI",
-        "subtitle": "chat.plotkai.in",
-        "url": "https://chat.plotkai.in/#/",
+        "subtitle": "chat.devutkarsh.com",
+        "url": "https://chat.devutkarsh.com/#/",
         "category": "client",
-        "description": "Child Kubernetes Deployment pod in namespace 'llm-platform'. Modern chat client delivering streaming conversations and multi-session management. Accessible live at chat.plotkai.in/#/.",
+        "description": "Child Kubernetes Deployment pod in namespace 'llm-platform'. Modern chat client delivering streaming conversations and multi-session management. Accessible live at chat.devutkarsh.com/#/.",
         "iconName": "Bot",
         "techStack": [
           "NextChat",
@@ -707,10 +707,10 @@
       "data": {
         "id": "node-litellm",
         "label": "LiteLLM AI Gateway",
-        "subtitle": "gateway.plotkai.in",
-        "url": "https://gateway.plotkai.in/ui",
+        "subtitle": "gateway.devutkarsh.com",
+        "url": "https://gateway.devutkarsh.com/ui",
         "category": "gateway",
-        "description": "Child Kubernetes Deployment pod in namespace 'llm-platform'. Central AI router and quota enforcer. Credentials: tester@plotkai.in / Tester@123456.",
+        "description": "Child Kubernetes Deployment pod in namespace 'llm-platform'. Central AI router and quota enforcer. Credentials: tester@devutkarsh.com / Tester@123456.",
         "iconName": "Shuffle",
         "techStack": [
           "LiteLLM Proxy",
@@ -732,7 +732,7 @@
           "Translates standard OpenAI API requests to local model endpoints",
           "Enforces team API keys, spend budgets, and rate limiting",
           "Asynchronously forwards generation metrics to Langfuse",
-          "Provides management UI and virtual key generation at gateway.plotkai.in"
+          "Provides management UI and virtual key generation at gateway.devutkarsh.com"
         ],
         "failureModes": [
           "Upstream model pod saturation causing timeout errors",
@@ -808,10 +808,10 @@
         "protocol": "REST / HTTPS",
         "latency": "~8 ms",
         "payloadType": "DNS Query / HTTPS Request",
-        "payloadSample": "GET / HTTP/2\nHost: chat.plotkai.in\nUser-Agent: Mozilla/5.0",
+        "payloadSample": "GET / HTTP/2\nHost: chat.devutkarsh.com\nUser-Agent: Mozilla/5.0",
         "authRequired": false,
         "bidirectional": true,
-        "description": "User client resolves chat.plotkai.in via Cloudflare DNS and connects to the nearest Cloudflare Edge Anycast PoP."
+        "description": "User client resolves chat.devutkarsh.com via Cloudflare DNS and connects to the nearest Cloudflare Edge Anycast PoP."
       }
     },
     {
@@ -829,7 +829,7 @@
         "protocol": "TCP / TLS",
         "latency": "< 3 ms",
         "payloadType": "Encrypted Tunnel Stream",
-        "payloadSample": "QUIC / HTTP2 Tunnel Frame\nTunnel-ID: 6ff4b8e2-...\nHost: chat.plotkai.in",
+        "payloadSample": "QUIC / HTTP2 Tunnel Frame\nTunnel-ID: 6ff4b8e2-...\nHost: chat.devutkarsh.com",
         "authRequired": true,
         "bidirectional": true,
         "description": "Cloudflare edge proxies incoming requests through established outbound-only QUIC tunnels directly into the cluster."
@@ -850,7 +850,7 @@
         "protocol": "REST / HTTPS",
         "latency": "< 1 ms",
         "payloadType": "Internal Ingress Forward",
-        "payloadSample": "GET / HTTP/1.1\nHost: chat.plotkai.in\nX-Forwarded-For: 198.51.100.4",
+        "payloadSample": "GET / HTTP/1.1\nHost: chat.devutkarsh.com\nX-Forwarded-For: 198.51.100.4",
         "authRequired": false,
         "bidirectional": true,
         "description": "Cloudflared daemon forwards decrypted traffic to the Traefik Ingress Controller service inside Kubernetes."
@@ -860,7 +860,7 @@
       "id": "edge-traefik-nextchat",
       "source": "node-traefik",
       "target": "node-nextchat",
-      "label": "Route chat.plotkai.in",
+      "label": "Route chat.devutkarsh.com",
       "animated": true,
       "style": {
         "stroke": "#10b981",
@@ -871,17 +871,17 @@
         "protocol": "REST / HTTPS",
         "latency": "< 1 ms",
         "payloadType": "K8s Service Ingress Route",
-        "payloadSample": "GET /#/ HTTP/1.1\nHost: chat.plotkai.in\nUpstream: nextchat-service:3000",
+        "payloadSample": "GET /#/ HTTP/1.1\nHost: chat.devutkarsh.com\nUpstream: nextchat-service:3000",
         "authRequired": false,
         "bidirectional": true,
-        "description": "Traefik resolves the IngressRoute rule for chat.plotkai.in and load balances traffic to NextChat UI pods."
+        "description": "Traefik resolves the IngressRoute rule for chat.devutkarsh.com and load balances traffic to NextChat UI pods."
       }
     },
     {
       "id": "edge-traefik-litellm",
       "source": "node-traefik",
       "target": "node-litellm",
-      "label": "Route gateway.plotkai.in",
+      "label": "Route gateway.devutkarsh.com",
       "animated": true,
       "style": {
         "stroke": "#10b981",
@@ -892,7 +892,7 @@
         "protocol": "REST / HTTPS",
         "latency": "< 1 ms",
         "payloadType": "API Ingress Route",
-        "payloadSample": "POST /v1/chat/completions HTTP/1.1\nHost: gateway.plotkai.in",
+        "payloadSample": "POST /v1/chat/completions HTTP/1.1\nHost: gateway.devutkarsh.com",
         "authRequired": true,
         "bidirectional": true,
         "description": "Traefik routes gateway API calls and admin dashboard requests to LiteLLM Gateway pods."
@@ -902,7 +902,7 @@
       "id": "edge-traefik-headlamp",
       "source": "node-traefik",
       "target": "node-headlamp",
-      "label": "Route headlamp.plotkai.in",
+      "label": "Route headlamp.devutkarsh.com",
       "animated": true,
       "style": {
         "stroke": "#10b981",
@@ -913,17 +913,17 @@
         "protocol": "REST / HTTPS",
         "latency": "< 1 ms",
         "payloadType": "Cluster UI Ingress Route",
-        "payloadSample": "GET / HTTP/1.1\nHost: headlamp.plotkai.in\nUpstream: headlamp:4466",
+        "payloadSample": "GET / HTTP/1.1\nHost: headlamp.devutkarsh.com\nUpstream: headlamp:4466",
         "authRequired": true,
         "bidirectional": true,
-        "description": "Traefik directs admin traffic for headlamp.plotkai.in to the Headlamp Kubernetes dashboard pod."
+        "description": "Traefik directs admin traffic for headlamp.devutkarsh.com to the Headlamp Kubernetes dashboard pod."
       }
     },
     {
       "id": "edge-traefik-langfuse",
       "source": "node-traefik",
       "target": "node-langfuse",
-      "label": "Route langfuse.plotkai.in",
+      "label": "Route langfuse.devutkarsh.com",
       "animated": true,
       "style": {
         "stroke": "#10b981",
@@ -934,17 +934,17 @@
         "protocol": "REST / HTTPS",
         "latency": "< 1 ms",
         "payloadType": "Tracing Dashboard Route",
-        "payloadSample": "GET / HTTP/1.1\nHost: langfuse.plotkai.in\nUpstream: langfuse-web:3000",
+        "payloadSample": "GET / HTTP/1.1\nHost: langfuse.devutkarsh.com\nUpstream: langfuse-web:3000",
         "authRequired": true,
         "bidirectional": true,
-        "description": "Traefik routes telemetry visualization requests for langfuse.plotkai.in to Langfuse frontend pods."
+        "description": "Traefik routes telemetry visualization requests for langfuse.devutkarsh.com to Langfuse frontend pods."
       }
     },
     {
       "id": "edge-traefik-netdata",
       "source": "node-traefik",
       "target": "node-netdata",
-      "label": "Route netdata.plotkai.in",
+      "label": "Route netdata.devutkarsh.com",
       "animated": true,
       "style": {
         "stroke": "#10b981",
@@ -955,17 +955,17 @@
         "protocol": "REST / HTTPS",
         "latency": "< 1 ms",
         "payloadType": "Telemetry Dashboard Route",
-        "payloadSample": "GET / HTTP/1.1\nHost: netdata.plotkai.in\nUpstream: netdata:19999",
+        "payloadSample": "GET / HTTP/1.1\nHost: netdata.devutkarsh.com\nUpstream: netdata:19999",
         "authRequired": false,
         "bidirectional": true,
-        "description": "Traefik proxies real-time system metrics traffic for netdata.plotkai.in to the Netdata telemetry agent."
+        "description": "Traefik proxies real-time system metrics traffic for netdata.devutkarsh.com to the Netdata telemetry agent."
       }
     },
     {
       "id": "edge-traefik-argocd",
       "source": "node-traefik",
       "target": "node-argocd",
-      "label": "Route argocd.plotkai.in",
+      "label": "Route argocd.devutkarsh.com",
       "animated": true,
       "style": {
         "stroke": "#10b981",
@@ -976,10 +976,10 @@
         "protocol": "REST / HTTPS",
         "latency": "< 1 ms",
         "payloadType": "GitOps Ingress Route",
-        "payloadSample": "GET / HTTP/1.1\nHost: argocd.plotkai.in\nUpstream: argocd-server:80",
+        "payloadSample": "GET / HTTP/1.1\nHost: argocd.devutkarsh.com\nUpstream: argocd-server:80",
         "authRequired": true,
         "bidirectional": true,
-        "description": "Traefik forwards GitOps UI and webhook traffic for argocd.plotkai.in to the Argo CD server."
+        "description": "Traefik forwards GitOps UI and webhook traffic for argocd.devutkarsh.com to the Argo CD server."
       }
     },
     {
@@ -1063,7 +1063,7 @@
         "protocol": "TCP / TLS",
         "latency": "~150 ms",
         "payloadType": "Git Commit Object",
-        "payloadSample": "commit e8b321a (HEAD -> main)\nAuthor: Utkarsh <utkarsh@plotkai.in>\nDate: Sat Sep 19 01:00:00 2026\n\nfeat(k8s): update Qwen vLLM batch limits, Traefik routes & LiteLLM config",
+        "payloadSample": "commit e8b321a (HEAD -> main)\nAuthor: Utkarsh <utkarsh@devutkarsh.com>\nDate: Sat Sep 19 01:00:00 2026\n\nfeat(k8s): update Qwen vLLM batch limits, Traefik routes & LiteLLM config",
         "authRequired": true,
         "bidirectional": false,
         "description": "Developer workstation pushes Kubernetes YAML manifests, Helm values, and configuration updates to the GitHub source repository."
@@ -1341,7 +1341,7 @@
         "protocol": "TCP / TLS (SSH)",
         "sample": {
           "commit": "e8b321a",
-          "author": "utkarsh@plotkai.in",
+          "author": "utkarsh@devutkarsh.com",
           "files_changed": [
             "k8s/litellm.yaml",
             "k8s/qwen-inference.yaml",
@@ -1425,7 +1425,7 @@
     {
       "step": 4,
       "title": "User Resolves DNS & Accesses NextChat via Cloudflare & Traefik",
-      "description": "User client requests chat.plotkai.in. Cloudflare Portal resolves DNS and forwards traffic through Cloudflared Tunnel into Traefik Ingress Controller, which routes directly to NextChat UI.",
+      "description": "User client requests chat.devutkarsh.com. Cloudflare Portal resolves DNS and forwards traffic through Cloudflared Tunnel into Traefik Ingress Controller, which routes directly to NextChat UI.",
       "activeNodeIds": [
         "node-user-client",
         "node-cloudflare-portal",
@@ -1443,7 +1443,7 @@
         "action": "Zero Trust Ingress Routing",
         "protocol": "HTTPS -> QUIC Tunnel -> Traefik",
         "sample": {
-          "domain": "chat.plotkai.in",
+          "domain": "chat.devutkarsh.com",
           "tls": "TLS 1.3",
           "ingress_target": "nextchat-service.llm-platform.svc:3000"
         }
@@ -1484,7 +1484,7 @@
     {
       "step": 6,
       "title": "LiteLLM Gateway Authenticates & Resolves Model Route",
-      "description": "LiteLLM Gateway at gateway.plotkai.in validates virtual keys against PostgreSQL, verifies token quotas, and proxies the prompt to the internal Qwen 2.5 3B inference service.",
+      "description": "LiteLLM Gateway at gateway.devutkarsh.com validates virtual keys against PostgreSQL, verifies token quotas, and proxies the prompt to the internal Qwen 2.5 3B inference service.",
       "activeNodeIds": [
         "node-litellm",
         "node-postgres-db",
@@ -1499,7 +1499,7 @@
         "protocol": "Internal HTTP Proxy",
         "sample": {
           "status": "authenticated",
-          "user": "tester@plotkai.in",
+          "user": "tester@devutkarsh.com",
           "upstream_target": "http://qwen-inference-service:8000/v1"
         }
       },
@@ -1560,7 +1560,7 @@
     {
       "step": 9,
       "title": "LiteLLM Emits Trace to Langfuse Observability",
-      "description": "Upon stream completion, LiteLLM triggers the Langfuse callback. Langfuse logs total token counts, latency breakdown, prompt text, and response text at langfuse.plotkai.in.",
+      "description": "Upon stream completion, LiteLLM triggers the Langfuse callback. Langfuse logs total token counts, latency breakdown, prompt text, and response text at langfuse.devutkarsh.com.",
       "activeNodeIds": [
         "node-litellm",
         "node-langfuse",
@@ -1601,8 +1601,8 @@
         "action": "Dashboard Ingress Access",
         "protocol": "HTTPS via Traefik",
         "sample": {
-          "netdata_url": "https://netdata.plotkai.in",
-          "headlamp_url": "https://headlamp.plotkai.in",
+          "netdata_url": "https://netdata.devutkarsh.com",
+          "headlamp_url": "https://headlamp.devutkarsh.com",
           "gpu_utilization": "88%",
           "pod_status": "Running (1/1)"
         }
@@ -1635,7 +1635,7 @@
       "chosenApproach": "Headlamp Kubernetes web dashboard deployed in-cluster with RBAC control",
       "pros": [
         "Intuitive visual overview of namespaces, pods, logs, and GPU resource limits for dev teams",
-        "Plugin ecosystem for custom CRDs and cluster health widgets at headlamp.plotkai.in",
+        "Plugin ecosystem for custom CRDs and cluster health widgets at headlamp.devutkarsh.com",
         "Enforces native Kubernetes ServiceAccount RBAC permissions without shared kubeconfigs"
       ],
       "cons": [
@@ -1746,12 +1746,12 @@
     {
       "area": "Transport Security",
       "standard": "TLS 1.3 / Automated Ingress Certificates",
-      "implementation": "All public ingress endpoints (chat.plotkai.in, gateway.plotkai.in, langfuse.plotkai.in, netdata.plotkai.in, headlamp.plotkai.in, argocd.plotkai.in) are secured via cert-manager and Traefik Let's Encrypt TLS certificates."
+      "implementation": "All public ingress endpoints (chat.devutkarsh.com, gateway.devutkarsh.com, langfuse.devutkarsh.com, netdata.devutkarsh.com, headlamp.devutkarsh.com, argocd.devutkarsh.com) are secured via cert-manager and Traefik Let's Encrypt TLS certificates."
     },
     {
       "area": "Observability Access Controls",
       "standard": "Role-Based Dashboard Authentication",
-      "implementation": "LiteLLM and Langfuse dashboards enforce authenticated credentials (tester@plotkai.in / Tester@123456), while Netdata provides read-only telemetry exploration."
+      "implementation": "LiteLLM and Langfuse dashboards enforce authenticated credentials (tester@devutkarsh.com / Tester@123456), while Netdata provides read-only telemetry exploration."
     }
   ]
 }
