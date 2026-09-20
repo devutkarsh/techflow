@@ -28,10 +28,15 @@ export const ChapterPickerModal: React.FC<ChapterPickerModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const handleClose = () => {
+    setSearchQuery('');
+    onClose();
+  };
+
   useEffect(() => {
     if (isOpen) {
-      setSearchQuery('');
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const timer = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -54,7 +59,7 @@ export const ChapterPickerModal: React.FC<ChapterPickerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="inspector-overlay" onClick={onClose}>
+    <div className="inspector-overlay" onClick={handleClose}>
       <div className="chapter-picker-modal-card" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div className="chapter-picker-header">
@@ -65,7 +70,7 @@ export const ChapterPickerModal: React.FC<ChapterPickerModalProps> = ({
               {architectures.length} Chapters
             </span>
           </div>
-          <button className="btn-icon" onClick={onClose} title="Close (Esc)">
+          <button className="btn-icon" onClick={handleClose} title="Close (Esc)">
             <X size={16} />
           </button>
         </div>
@@ -99,7 +104,7 @@ export const ChapterPickerModal: React.FC<ChapterPickerModalProps> = ({
                   className={`chapter-picker-card-item ${isActive ? 'active' : ''}`}
                   onClick={() => {
                     onSelectIndex(originalIdx);
-                    onClose();
+                    handleClose();
                   }}
                 >
                   <div className="chapter-picker-num">

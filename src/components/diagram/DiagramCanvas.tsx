@@ -242,6 +242,7 @@ const FlowInner: React.FC<DiagramCanvasProps> = ({
   const { fitView } = useReactFlow();
   const [showMinimap, setShowMinimap] = React.useState(false);
   const [bgVariant, setBgVariant] = React.useState<BackgroundVariant>(BackgroundVariant.Lines);
+  const prevArchIdRef = React.useRef<string>(architecture.id);
 
   // Active step highlights
   const activeStep = useMemo(() => {
@@ -331,10 +332,33 @@ const FlowInner: React.FC<DiagramCanvasProps> = ({
   useEffect(() => {
     setNodes(initialNodes);
     setEdges(initialEdges);
-    setTimeout(() => {
-      fitView({ padding: 0.2, duration: 400 });
-    }, 60);
-  }, [initialNodes, initialEdges, fitView, setNodes, setEdges]);
+
+    // Only fitView on initial load or when architecture chapter changes
+    if (prevArchIdRef.current !== architecture.id) {
+      prevArchIdRef.current = architecture.id;
+      const timer = setTimeout(() => {
+        fitView({ padding: 0.15, duration: 300 });
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [initialNodes, initialEdges, architecture.id, fitView, setNodes, setEdges]);
+
+  // Initial mount fitView
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fitView({ padding: 0.15, duration: 300 });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [fitView]);
+
+  // Memoize nodes with selection state to avoid recreating new object references on every render
+  const nodesWithSelection = useMemo(() => {
+    return nodes.map((n) => {
+      const isSelected = n.id === selectedNodeId;
+      if (n.selected === isSelected) return n;
+      return { ...n, selected: isSelected };
+    });
+  }, [nodes, selectedNodeId]);
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
@@ -357,7 +381,8 @@ const FlowInner: React.FC<DiagramCanvasProps> = ({
       );
       setNodes([...layoutedNodes]);
       setEdges([...layoutedEdges]);
-      setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 60);
+      const timer = setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 60);
+      return () => clearTimeout(timer);
     },
     [nodes, edges, fitView, setNodes, setEdges]
   );
@@ -410,10 +435,7 @@ const FlowInner: React.FC<DiagramCanvasProps> = ({
       </div>
 
       <ReactFlow
-        nodes={nodes.map((n) => ({
-          ...n,
-          selected: n.id === selectedNodeId,
-        }))}
+        nodes={nodesWithSelection}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -422,8 +444,9 @@ const FlowInner: React.FC<DiagramCanvasProps> = ({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
-        minZoom={0.2}
+        minZoom={0.05}
         maxZoom={2.0}
+        preventScrolling={false}
         defaultEdgeOptions={{ type: 'architectureEdge' }}
       >
         <Controls 

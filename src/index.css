@@ -500,8 +500,7 @@ button {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  background: var(--bg-glass);
-  backdrop-filter: blur(12px);
+  background: #0e1422;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 0.3rem 0.5rem;
@@ -536,9 +535,7 @@ button {
 .react-flow__controls {
   display: flex;
   flex-direction: column;
-  background: rgba(13, 17, 26, 0.9) !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
+  background: #0d111a !important;
   border: 1px solid rgba(56, 189, 248, 0.25) !important;
   border-radius: var(--radius-md) !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
@@ -586,12 +583,10 @@ button {
 .arch-node {
   width: 190px;
   border-radius: var(--radius-lg);
-  background: rgba(15, 22, 36, 0.92);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: #0f1624;
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-node);
-  transition: all var(--transition-smooth);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
   cursor: pointer;
   position: relative;
   display: flex;
@@ -632,12 +627,10 @@ button {
   min-width: 480px;
   min-height: 380px;
   border-radius: var(--radius-xl);
-  background: rgba(12, 18, 32, 0.52);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: #0a0f1d;
   border: 2px dashed rgba(56, 189, 248, 0.38);
   box-shadow: inset 0 0 50px rgba(56, 189, 248, 0.03), 0 16px 40px rgba(0, 0, 0, 0.55);
-  transition: all var(--transition-smooth);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -673,10 +666,8 @@ button {
   align-items: center;
   justify-content: space-between;
   padding: 0.85rem 1.25rem;
-  background: rgba(15, 23, 42, 0.88);
+  background: #0f172a;
   border-bottom: 1px solid rgba(56, 189, 248, 0.22);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
   cursor: pointer;
   user-select: none;
   z-index: 2;

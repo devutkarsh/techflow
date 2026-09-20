@@ -45,11 +45,16 @@ export const SimulationBar: React.FC<SimulationBarProps> = ({
           onNextStep();
         } else {
           // Finished flow! Trigger subtle celebratory confetti
-          confetti({
-            particleCount: 50,
-            spread: 60,
-            origin: { y: 0.8 },
-          });
+          try {
+            confetti({
+              particleCount: 25,
+              spread: 50,
+              origin: { y: 0.8 },
+              disableForReducedMotion: true,
+            });
+          } catch {
+            // Safe fallback if canvas context is unavailable
+          }
           onTogglePlay();
         }
       }, duration);
