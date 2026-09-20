@@ -2,14 +2,14 @@
   "id": "arch-the-toolkit",
   "slug": "the-toolkit",
   "title": "The Toolkit",
-  "enabled": true,
+  "enabled": false,
   "subtitle": "Curated developer tooling, platform engineering utilities, continuous delivery consoles, and source infrastructure.",
   "category": "Developer Tooling & Platform",
   "version": "v1.0.0",
   "author": {
     "name": "Utkarsh",
-    "role": "Lead Platform & DevSecOps Architect",
-    "avatar": "UT"
+    "role": "Lead AI & Cloud Platform Architect",
+    "avatar": "UD"
   },
   "lastUpdated": "2026-09-18",
   "publishedDate": "2026-09-18",
